@@ -1,11 +1,12 @@
-
-
+using System;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
-namespace Fox.Attributes
+namespace Foxworks.Attributes
 {
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(ButtonAttribute))]
     public class ButtonDrawer : PropertyDrawer
     {
@@ -16,36 +17,38 @@ namespace Fox.Attributes
             {
                 return;
             }
-            
-            Object target = property.serializedObject.targetObject;
-            System.Type type = target.GetType();
 
-            System.Reflection.MethodInfo method = type.GetMethod(methodName);
+            Object target = property.serializedObject.targetObject;
+            Type type = target.GetType();
+
+            MethodInfo method = type.GetMethod(methodName);
             if (method == null)
             {
                 GUI.Label(position, "Method could not be found. Is it public?");
                 return;
             }
+
             if (method.GetParameters().Length > 0)
             {
                 GUI.Label(position, "Method cannot have parameters.");
                 return;
             }
+
             if (GUI.Button(position, method.Name))
             {
                 method.Invoke(target, null);
             }
         }
     }
-    #endif
+#endif
 
     public class ButtonAttribute : PropertyAttribute
     {
-        public string MethodName { get; }
-
         public ButtonAttribute(string methodName)
         {
             MethodName = methodName;
         }
+
+        public string MethodName { get; }
     }
 }

@@ -2,10 +2,15 @@
 using System.IO;
 using UnityEngine;
 
-namespace Fox.Utils
+namespace Foxworks.Utils
 {
     public static class FileUtils
     {
+        /// <summary>
+        ///     Ensures that a folder exists at the specified path.
+        /// </summary>
+        /// <param name="folderPath"></param>
+        /// <returns></returns>
         public static bool EnsureFolderExists(this string folderPath)
         {
             try

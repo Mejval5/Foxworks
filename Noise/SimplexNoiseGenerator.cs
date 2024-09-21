@@ -1,13 +1,17 @@
 ﻿using UnityEngine;
 
-namespace VoxelPainter.Utils
+namespace Foxworks.Noise
 {
     public static class SimplexNoiseGenerator
     {
-        private static int[] perm =
+        /// <summary>
+        ///     Hash lookup table as defined by Ken Perlin. This is a randomly
+        ///     arranged array of all numbers from 0-255 inclusive.
+        /// </summary>
+        private static readonly int[] perm =
         {
-            151, 160, 137, 91, 90, 15, // Hash lookup table as defined by Ken Perlin. This is a randomly
-            131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, // arranged array of all numbers from 0-255 inclusive.
+            151, 160, 137, 91, 90, 15,
+            131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,
             103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,
             190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94,
             252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
@@ -34,15 +38,7 @@ namespace VoxelPainter.Utils
             215, 61, 156, 180
         };
 
-        private static int[] permMod12 = new int[512];
-
-        static SimplexNoiseGenerator()
-        {
-            for (int i = 0; i < 512; i++)
-            {
-                permMod12[i] = perm[i % 256] % 12;
-            }
-        }
+        private static readonly int[] permMod12 = new int[512];
 
         private static readonly float[] grad3 =
         {
@@ -54,11 +50,19 @@ namespace VoxelPainter.Utils
         private static readonly float F3 = 1.0f / 3.0f;
         private static readonly float G3 = 1.0f / 6.0f;
 
+        static SimplexNoiseGenerator()
+        {
+            for (int i = 0; i < 512; i++)
+            {
+                permMod12[i] = perm[i % 256] % 12;
+            }
+        }
+
         public static float Generate(Vector3 position)
         {
             return Generate(position.x, position.y, position.z);
         }
-        
+
         public static float Generate(float x, float y, float z)
         {
             float s = (x + y + z) * F3; // Very nice and simple skew factor for 3D

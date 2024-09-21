@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Fox.App
+namespace Foxworks.App
 {
     public class PerformanceHandler : MonoBehaviour
     {

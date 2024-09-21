@@ -1,7 +1,7 @@
 ﻿using Unity.Collections;
 using UnityEngine;
 
-namespace VoxelPainter.Utils
+namespace Foxworks.Voxels
 {
     public struct HitMeshInfo
     {
@@ -11,14 +11,30 @@ namespace VoxelPainter.Utils
         public Ray Ray;
     }
 
+    /// <summary>
+    ///     This class is used to cast rays into voxel grids.
+    ///     The ray marching algorithm is used to find the intersection point of a ray with a scalar field.
+    /// </summary>
     public static class VoxelRaycaster
     {
+        /// <summary>
+        ///     Ray marches through the voxel grid to find the intersection point of the ray with the scalar field.
+        /// </summary>
+        /// <param name="ray"></param>
+        /// <param name="stepSize"></param>
+        /// <param name="threshold"></param>
+        /// <param name="vertexAmountX"></param>
+        /// <param name="vertexAmountY"></param>
+        /// <param name="vertexAmountZ"></param>
+        /// <param name="verticesValues"></param>
+        /// <param name="gridOrigin"></param>
+        /// <returns></returns>
         public static HitMeshInfo RayMarch(Ray ray, float stepSize, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues, Vector3 gridOrigin)
         {
-            HitMeshInfo hitInfo = new ();
-            Vector3 gridSpacing = new (1f, 1f, 1f);
-            float maxDistance = Mathf.Sqrt(Mathf.Pow((vertexAmountX * gridSpacing.x), 2) + Mathf.Pow((vertexAmountY * gridSpacing.y), 2) + Mathf.Pow((vertexAmountZ * gridSpacing.z), 2));
-        
+            HitMeshInfo hitInfo = new();
+            Vector3 gridSpacing = new(1f, 1f, 1f);
+            float maxDistance = Mathf.Sqrt(Mathf.Pow(vertexAmountX * gridSpacing.x, 2) + Mathf.Pow(vertexAmountY * gridSpacing.y, 2) + Mathf.Pow(vertexAmountZ * gridSpacing.z, 2));
+
             // Define the voxel grid bounds
             Vector3 gridMin = gridOrigin;
             Vector3 gridMax = gridOrigin + new Vector3(vertexAmountX * gridSpacing.x, vertexAmountY * gridSpacing.y, vertexAmountZ * gridSpacing.z);
@@ -41,7 +57,7 @@ namespace VoxelPainter.Utils
                 currentPosition += ray.direction * stepSize;
                 distanceTraveled += stepSize;
 
-                float currentValue = SampleScalarField(currentPosition, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing, detectSmallFeatures: true);
+                float currentValue = SampleScalarField(currentPosition, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing, true);
 
                 // Check for crossing
                 if (!(currentValue > threshold))
@@ -50,7 +66,8 @@ namespace VoxelPainter.Utils
                 }
 
                 // Crossing detected, refine intersection point
-                Vector3 intersectionPoint = RefineIntersection(ray, currentPosition - ray.direction * stepSize, currentPosition, threshold, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing);
+                Vector3 intersectionPoint = RefineIntersection(ray, currentPosition - ray.direction * stepSize, currentPosition, threshold, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues,
+                    gridOrigin, gridSpacing);
 
                 hitInfo.HitPoint = intersectionPoint;
                 hitInfo.IsHit = true;
@@ -60,7 +77,7 @@ namespace VoxelPainter.Utils
 
             return hitInfo;
         }
-    
+
         private static bool RayIntersectsBox(Ray ray, Vector3 min, Vector3 max, out float tMin, out float tMax)
         {
             tMin = 0.0f;
@@ -93,7 +110,8 @@ namespace VoxelPainter.Utils
             return true;
         }
 
-        private static float SampleScalarField(Vector3 position, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues, Vector3 gridOrigin, Vector3 gridSpacing, bool detectSmallFeatures = false)
+        private static float SampleScalarField(Vector3 position, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues, Vector3 gridOrigin, Vector3 gridSpacing,
+            bool detectSmallFeatures = false)
         {
             // Convert world position to grid indices
             Vector3 localPos = position - gridOrigin;
@@ -150,10 +168,10 @@ namespace VoxelPainter.Utils
 
             float maxHit = Mathf.Max(c00, c100, c010, c001, c110, c101, c011, c111);
             return maxHit;
-
         }
 
-        private static Vector3 RefineIntersection(Ray ray, Vector3 start, Vector3 end, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues, Vector3 gridOrigin, Vector3 gridSpacing)
+        private static Vector3 RefineIntersection(Ray ray, Vector3 start, Vector3 end, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues,
+            Vector3 gridOrigin, Vector3 gridSpacing)
         {
             const int maxIterations = 10;
             const float tolerance = 1e-4f;

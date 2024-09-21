@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Fox.Components.TransformUtils
+namespace Foxworks.Components.TransformUtils
 {
     [ExecuteInEditMode]
     public class FollowScaleSettings : MonoBehaviour

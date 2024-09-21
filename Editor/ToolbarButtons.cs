@@ -4,17 +4,19 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
-using UnityToolbarExtender;
 using Debug = UnityEngine.Debug;
 
-namespace Editor.Fox
+namespace Foxworks.Editor
 {
+    /// <summary>
+    /// Adds extra buttons to the toolbar.
+    /// </summary>
     [InitializeOnLoad]
     public class ToolbarButtons
     {
         static ToolbarButtons()
         {
-            ToolbarExtender.LeftToolbarGUI.Add(OnToolbarGUI);
+            ToolbarExtender.Editor.ToolbarExtender.LeftToolbarGUI.Add(OnToolbarGUI);
         }
 
         private static void OnToolbarGUI()

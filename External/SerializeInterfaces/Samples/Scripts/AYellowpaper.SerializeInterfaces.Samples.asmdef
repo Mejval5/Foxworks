@@ -1,0 +1,16 @@
+{
+  "name": "AYellowpaper.SerializeInterfaces.Samples",
+  "rootNamespace": "",
+  "references": [
+    "AYellowpaper.SerializeInterfaces"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

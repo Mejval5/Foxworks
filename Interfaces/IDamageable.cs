@@ -1,9 +1,11 @@
 ﻿using System;
 using UnityEngine;
-using UnityEngine.Events;
 
-namespace Fox.Interfaces
+namespace Foxworks.Interfaces
 {
+    /// <summary>
+    ///     Interface for entities that can be damaged.
+    /// </summary>
     public interface IDamageable
     {
         public float CurrentHealth { get; }

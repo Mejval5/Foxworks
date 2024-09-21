@@ -1,9 +1,12 @@
 ﻿using UnityEngine;
 
-namespace Fox.Utils
+namespace Foxworks.Utils
 {
     public class PlatformUtils
     {
+        /// <summary>
+        ///     Returns the target platform of the build.
+        /// </summary>
         public static RuntimePlatform TargetPlatform
         {
             get
@@ -23,7 +26,7 @@ namespace Fox.Utils
 #endif
             }
         }
-        
+
         public static bool IsTargetingAndroid => TargetPlatform == RuntimePlatform.Android;
         public static bool IsTargetingWindows => TargetPlatform == RuntimePlatform.WindowsPlayer;
         public static bool IsTargetingWebGL => TargetPlatform == RuntimePlatform.WebGLPlayer;

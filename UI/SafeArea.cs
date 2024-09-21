@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Fox.UI
+namespace Foxworks.UI
 {
     /// <summary>
     ///     Safe area implementation for notched mobile devices. Usage:
@@ -15,7 +15,7 @@ namespace Fox.UI
         [SerializeField] private bool _conformX = true; // Conform to screen safe area on X-axis (default true, disable to ignore)
         [SerializeField] private bool _conformY = true; // Conform to screen safe area on Y-axis (default true, disable to ignore)
         [SerializeField] private bool _logging; // Conform to screen safe area on Y-axis (default true, disable to ignore)
-        
+
         private ScreenOrientation _lastOrientation = ScreenOrientation.AutoRotation;
         private Rect _lastSafeArea = new(0, 0, 0, 0);
         private Vector2Int _lastScreenSize = new(0, 0);
@@ -72,25 +72,33 @@ namespace Fox.UI
             switch (Sim)
             {
                 case SimDevice.IPhoneX:
-                    nsa = Screen.height > Screen.width ? _nsaIPhoneX[0] : // Portrait
+                    nsa = Screen.height > Screen.width
+                        ? _nsaIPhoneX[0]
+                        : // Portrait
                         // Landscape
                         _nsaIPhoneX[1];
 
                     break;
                 case SimDevice.IPhoneXsMax:
-                    nsa = Screen.height > Screen.width ? _nsaIPhoneXsMax[0] : // Portrait
+                    nsa = Screen.height > Screen.width
+                        ? _nsaIPhoneXsMax[0]
+                        : // Portrait
                         // Landscape
                         _nsaIPhoneXsMax[1];
 
                     break;
                 case SimDevice.Pixel3XlLsl:
-                    nsa = Screen.height > Screen.width ? _nsaPixel3XlLsl[0] : // Portrait
+                    nsa = Screen.height > Screen.width
+                        ? _nsaPixel3XlLsl[0]
+                        : // Portrait
                         // Landscape
                         _nsaPixel3XlLsl[1];
 
                     break;
                 case SimDevice.Pixel3XlLsr:
-                    nsa = Screen.height > Screen.width ? _nsaPixel3XlLsr[0] : // Portrait
+                    nsa = Screen.height > Screen.width
+                        ? _nsaPixel3XlLsr[0]
+                        : // Portrait
                         // Landscape
                         _nsaPixel3XlLsr[1];
 

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Fox.Components.CanvasUtils
+namespace Foxworks.Components.CanvasUtils
 {
     [ExecuteAlways]
     [RequireComponent(typeof(CanvasGroup), typeof(Canvas))]
@@ -8,9 +8,9 @@ namespace Fox.Components.CanvasUtils
     {
         [SerializeField] private Canvas _daddyCanvas;
         [SerializeField] private CanvasGroup _daddyCanvasGroup;
+        private Canvas _canvas;
 
         private CanvasGroup _canvasGroup;
-        private Canvas _canvas;
 
         private void Start()
         {

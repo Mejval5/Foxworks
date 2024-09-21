@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Fox.Components.ParticleSystemUtils
+namespace Foxworks.Components.ParticleSystemUtils
 {
     [ExecuteAlways]
     [RequireComponent(typeof(ParticleSystem))]
@@ -25,7 +25,7 @@ namespace Fox.Components.ParticleSystemUtils
                 _visibility = _daddyCanvasGroup.alpha;
                 ParticleSystem.MainModule main = _ps.main;
 
-                Gradient gradient = new ();
+                Gradient gradient = new();
                 GradientColorKey[] colorKeys = new GradientColorKey[_particleGradient.colorKeys.Length];
                 for (int i = 0; i < colorKeys.Length; i++)
                 {

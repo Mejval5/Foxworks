@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.Fox
+namespace Foxworks.Editor
 {
     /// <summary>
     /// Thanks to https://forum.unity.com/threads/4-6-editorapplication-modifierkeyschanged-how-to-find-out-which-key-was-pressed.357367/#post-2705846
@@ -10,28 +11,27 @@ namespace Editor.Fox
     [InitializeOnLoad]
     public static class GlobalKeyEventHandler
     {
-        public static event Action<Event> OnKeyEvent;
-        public static bool RegistrationSucceeded = false;
- 
+        public static bool RegistrationSucceeded;
+
         static GlobalKeyEventHandler()
         {
             RegistrationSucceeded = false;
             string msg = "";
             try
             {
-                System.Reflection.FieldInfo info = typeof(EditorApplication).GetField(
+                FieldInfo info = typeof(EditorApplication).GetField(
                     "globalEventHandler",
-                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic
+                    BindingFlags.Static | BindingFlags.NonPublic
                 );
                 if (info != null)
                 {
                     EditorApplication.CallbackFunction value = (EditorApplication.CallbackFunction)info.GetValue(null);
- 
+
                     value -= onKeyPressed;
                     value += onKeyPressed;
- 
+
                     info.SetValue(null, value);
- 
+
                     RegistrationSucceeded = true;
                 }
                 else
@@ -51,7 +51,9 @@ namespace Editor.Fox
                 }
             }
         }
- 
+
+        public static event Action<Event> OnKeyEvent;
+
         private static void onKeyPressed()
         {
             OnKeyEvent?.Invoke(Event.current);

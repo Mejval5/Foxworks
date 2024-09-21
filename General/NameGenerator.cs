@@ -1,23 +1,11 @@
 ﻿using System.Collections.Generic;
-using Fox.Utils;
+using Foxworks.Utils;
 using UnityEngine;
 
-namespace Fox.General
+namespace Foxworks.General
 {
     public static class NameGenerator
     {
-        public static string GetRandomUserName(bool addNumber = true, string prefix = "", string suffix = "", string separator = "#", string fallback = "Player")
-        {
-            bool hasNumber = Random.Range(0f, 1f) > 0.5f;
-            string number = "";
-            if (hasNumber)
-            {
-                number = Random.Range(0, 1000).ToString();
-            }
-
-            return UserNames.GetRandom(fallback) + separator + number;
-        }
-        
         private static readonly List<string> UserNames = new()
         {
             "3D Waffle",
@@ -1539,5 +1527,17 @@ namespace Fox.General
             "Stupendous Knights",
             "Regular Discipline"
         };
+
+        public static string GetRandomUserName(bool addNumber = true, string prefix = "", string suffix = "", string separator = "#", string fallback = "Player")
+        {
+            bool hasNumber = Random.Range(0f, 1f) > 0.5f;
+            string number = "";
+            if (hasNumber)
+            {
+                number = Random.Range(0, 1000).ToString();
+            }
+
+            return UserNames.GetRandom(fallback) + separator + number;
+        }
     }
 }

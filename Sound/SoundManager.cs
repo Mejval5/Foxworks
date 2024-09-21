@@ -1,12 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
-using Fox.Utils;
+using Foxworks.Utils;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.Pool;
 
-namespace Fox.Sound
+namespace Foxworks.Sound
 {
+    /// <summary>
+    ///     Manages the sound in the game.
+    /// </summary>
     public class SoundManager : MonoBehaviour
     {
         public static SoundManager shared;
@@ -26,14 +29,14 @@ namespace Fox.Sound
         private void Awake()
         {
             shared = this;
-            
+
             _musicPlayer = transform.CreateChildAudioSource("MusicPlayer");
-            
+
             _sfxPlayerPool = new ObjectPool<AudioSource>(
-                () => transform.CreateChildAudioSource("SfxPlayer"), 
-                AudioSourceUtils.GetPooledAudioSource, 
+                () => transform.CreateChildAudioSource("SfxPlayer"),
+                AudioSourceUtils.GetPooledAudioSource,
                 AudioSourceUtils.ReturnPooledAudioSource
-                );
+            );
         }
 
         private void Start()

@@ -1,26 +1,33 @@
 using System;
+using Foxworks.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.Fox
+namespace Foxworks.Editor
 {
+    /// <summary>
+    /// This class allows to open the search all window by pressing shift twice.
+    /// </summary>
     [InitializeOnLoad]
     public static class SearchEverywhere
     {
-        private static TimeSpan Delay = TimeSpan.FromSeconds(0.2f);
-        
         private static DateTime _lastShiftPressDownTime = DateTime.MinValue;
         private static DateTime _lastShiftPressUpTime = DateTime.MinValue;
-        
+
         static SearchEverywhere()
         {
             GlobalKeyEventHandler.OnKeyEvent -= OnKeyEvent;
             GlobalKeyEventHandler.OnKeyEvent += OnKeyEvent;
         }
- 
+
         private static void OnKeyEvent(Event current)
         {
             if (current == null)
+            {
+                return;
+            }
+            
+            if (FoxworksEditorPreferences.UseDoubleShiftSearchFunction.Value == false)
             {
                 return;
             }
@@ -31,13 +38,13 @@ namespace Editor.Fox
                 _lastShiftPressUpTime = DateTime.MinValue;
                 return;
             }
-            
+
             if (current.type != EventType.KeyUp)
             {
                 _lastShiftPressUpTime = DateTime.Now;
                 return;
             }
-            
+
             if (current.type != EventType.KeyDown)
             {
                 TryOpen();
@@ -50,7 +57,9 @@ namespace Editor.Fox
             TimeSpan downPressTimeSpan = DateTime.Now - _lastShiftPressDownTime;
             TimeSpan upPressTimeSpan = DateTime.Now - _lastShiftPressUpTime;
             
-            if (downPressTimeSpan < Delay && upPressTimeSpan < Delay)
+            TimeSpan delay = TimeSpan.FromSeconds(FoxworksEditorPreferences.DoubleShiftSearchFunctionClickTime.Value);
+
+            if (downPressTimeSpan < delay && upPressTimeSpan < delay)
             {
                 // Open search all window
                 EditorApplication.ExecuteMenuItem("Edit/Search All...");
@@ -58,5 +67,3 @@ namespace Editor.Fox
         }
     }
 }
-
-

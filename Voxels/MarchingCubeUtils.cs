@@ -2,7 +2,7 @@
 using Unity.Collections;
 using UnityEngine;
 
-namespace VoxelPainter.Utils
+namespace Foxworks.Voxels
 {
     public static class MarchingCubeUtils
     {
@@ -11,34 +11,36 @@ namespace VoxelPainter.Utils
 
         public const int TriangleConnectionTableWidth = 16;
 
+        public const int MaximumTrianglesPerCube = 5;
+
         /// <summary>
-        /// VertexOffset lists the positions, relative to vertex0, 
-        /// of each of the 8 vertices of a cube.
-        /// vertexOffset[8][3]
+        ///     VertexOffset lists the positions, relative to vertex0,
+        ///     of each of the 8 vertices of a cube.
+        ///     vertexOffset[8][3]
         /// </summary>
-        public static readonly int[,] CubeCornersPositions = new int[,]
+        public static readonly int[,] CubeCornersPositions =
         {
-            {0, 0, 0},{1, 0, 0},{1, 1, 0},{0, 1, 0},
-            {0, 0, 1},{1, 0, 1},{1, 1, 1},{0, 1, 1}
+            { 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 },
+            { 0, 0, 1 }, { 1, 0, 1 }, { 1, 1, 1 }, { 0, 1, 1 }
         };
-        
+
         /// <summary>
-        /// EdgeConnection lists the index of the endpoint vertices for each 
-        /// of the 12 edges of the cube.
-        /// edgeConnection[12][2]
+        ///     EdgeConnection lists the index of the endpoint vertices for each
+        ///     of the 12 edges of the cube.
+        ///     edgeConnection[12][2]
         /// </summary>
-        public static readonly int[,] EdgeConnection = new int[,] 
+        public static readonly int[,] EdgeConnection =
         {
-            {0,1}, {1,2}, {2,3}, {3,0},
-            {4,5}, {5,6}, {6,7}, {7,4},
-            {0,4}, {1,5}, {2,6}, {3,7}
+            { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 },
+            { 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 },
+            { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
         };
-        
+
         /// <summary>
-        /// edgeDirection lists the direction vector (vertex1-vertex0) for each edge in the cube.
-        /// edgeDirection[12][3]
+        ///     edgeDirection lists the direction vector (vertex1-vertex0) for each edge in the cube.
+        ///     edgeDirection[12][3]
         /// </summary>
-        public static readonly float[,] EdgeDirection = new float[,]
+        public static readonly float[,] EdgeDirection =
         {
             { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },
             { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },
@@ -46,17 +48,17 @@ namespace VoxelPainter.Utils
         };
 
         /// <summary>
-        /// For any edge, if one vertex is inside of the surface and the other 
-        /// is outside of the surface then the edge intersects the surface.
-        /// For each of the 8 vertices of the cube can be two possible states,
-        /// either inside or outside of the surface.
-        /// For any cube the are 2^8=256 possible sets of vertex states.
-        /// This table lists the edges intersected by the surface for all 256 
-        /// possible vertex states. There are 12 edges.  
-        /// For each entry in the table, if edge #n is intersected, then bit #n is set to 1.
-        /// cubeEdgeFlags[256]
+        ///     For any edge, if one vertex is inside of the surface and the other
+        ///     is outside of the surface then the edge intersects the surface.
+        ///     For each of the 8 vertices of the cube can be two possible states,
+        ///     either inside or outside of the surface.
+        ///     For any cube the are 2^8=256 possible sets of vertex states.
+        ///     This table lists the edges intersected by the surface for all 256
+        ///     possible vertex states. There are 12 edges.
+        ///     For each entry in the table, if edge #n is intersected, then bit #n is set to 1.
+        ///     cubeEdgeFlags[256]
         /// </summary>
-        public static readonly int[] CubeEdgeFlags = new int[]
+        public static readonly int[] CubeEdgeFlags =
         {
             0x000, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c, 0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
             0x190, 0x099, 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c, 0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
@@ -78,14 +80,14 @@ namespace VoxelPainter.Utils
 
 
         /// <summary>
-        /// For each of the possible vertex states listed in cubeEdgeFlags there is a specific triangulation
-        /// of the edge intersection points.  triangleConnectionTable lists all of them in the form of
-        /// 0-5 edge triples with the list terminated by the invalid value -1.
-        /// For example: triangleConnectionTable[3] list the 2 triangles formed when corner[0] 
-        /// and corner[1] are inside of the surface, but the rest of the cube is not.
-        /// triangleConnectionTable[256][16]
+        ///     For each of the possible vertex states listed in cubeEdgeFlags there is a specific triangulation
+        ///     of the edge intersection points.  triangleConnectionTable lists all of them in the form of
+        ///     0-5 edge triples with the list terminated by the invalid value -1.
+        ///     For example: triangleConnectionTable[3] list the 2 triangles formed when corner[0]
+        ///     and corner[1] are inside of the surface, but the rest of the cube is not.
+        ///     triangleConnectionTable[256][16]
         /// </summary>
-        public static readonly int[,] TriangleConnectionTable = new int[,]
+        public static readonly int[,] TriangleConnectionTable =
         {
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
             { 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
@@ -344,38 +346,80 @@ namespace VoxelPainter.Utils
             { 0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
         };
-        
+
+        /// <summary>
+        ///     Gets the position of the vertex based on the index.
+        /// </summary>
+        /// <param name="i"></param>
+        /// <param name="floorSize"></param>
+        /// <param name="vertexAmount"></param>
+        /// <returns></returns>
         public static Vector3Int ConvertIndexToPosition(int i, int floorSize, Vector3Int vertexAmount)
         {
             Vector3Int pos = Vector3Int.zero;
             pos.x = i % vertexAmount.x;
-            pos.z  = (i % floorSize) / vertexAmount.x;
-            pos.y  = i / floorSize;
-            
+            pos.z = i % floorSize / vertexAmount.x;
+            pos.y = i / floorSize;
+
             return pos;
         }
-        
+
+        /// <summary>
+        ///     Returns the index of the vertex in the vertex array based on the position.
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="vertexAmount"></param>
+        /// <returns></returns>
         public static int ConvertPositionToIndex(Vector3Int pos, Vector3Int vertexAmount)
         {
             return ConvertPositionToIndex(pos, vertexAmount.x * vertexAmount.z, vertexAmount);
         }
-        
+
+        /// <summary>
+        ///     Returns the index of the vertex in the vertex array based on the position.
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="floorSize"></param>
+        /// <param name="vertexAmount"></param>
+        /// <returns></returns>
         public static int ConvertPositionToIndex(Vector3Int pos, int floorSize, Vector3Int vertexAmount)
         {
             return pos.x + pos.z * vertexAmount.x + pos.y * floorSize;
         }
 
+        /// <summary>
+        ///     Checks if the position is on the border of the volume.
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="vertexAmount"></param>
+        /// <returns></returns>
         public static bool IsBorder(Vector3Int pos, Vector3Int vertexAmount)
         {
             return pos.x == 0 || pos.x == vertexAmount.x - 1 || pos.y == 0 || pos.y == vertexAmount.y - 1 || pos.z == 0 || pos.z == vertexAmount.z - 1;
         }
-        
+
+        /// <summary>
+        ///     Advanced version of the marching cubes algorithm.
+        ///     It contains several optimizations and improvements.
+        ///     Doesn't create new vertices per cube, but rather reuses them.
+        /// </summary>
+        /// <param name="baseVerticesOffsets"></param>
+        /// <param name="values"></param>
+        /// <param name="verticesOffsets"></param>
+        /// <param name="surface"></param>
+        /// <param name="vertices"></param>
+        /// <param name="triangles"></param>
+        /// <param name="baseIndexOffset"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        /// <param name="useLerp"></param>
         public static void GetMarchedCube(
-            int[] baseVerticesOffsets, 
-            NativeArray<float> values, 
-            int[] verticesOffsets, 
-            float surface, 
-            Vector3[] vertices, 
+            int[] baseVerticesOffsets,
+            NativeArray<float> values,
+            int[] verticesOffsets,
+            float surface,
+            Vector3[] vertices,
             List<int> triangles,
             int baseIndexOffset,
             int x,
@@ -391,26 +435,26 @@ namespace VoxelPainter.Utils
                     cubeIndex |= 1 << i;
                 }
             }
-            
+
             // Skip processing if cube is entirely inside or outside the surface
             if (cubeIndex is 0 or 255)
             {
                 return;
             }
-            
+
             int cubeEdgeFlags = CubeEdgeFlags[cubeIndex];
-            
+
             for (int i = 0; i < EdgesPerCube; i++)
             {
                 int startPointLocal = EdgeConnection[i, 0];
                 int endPointLocal = EdgeConnection[i, 1];
-                
+
                 int startPoint = baseVerticesOffsets[startPointLocal] + baseIndexOffset;
                 int endPoint = baseVerticesOffsets[endPointLocal] + baseIndexOffset;
-                
+
                 float startValue = values[startPoint];
                 float endValue = values[endPoint];
-                
+
                 bool hasCrossing = (cubeEdgeFlags & (1 << i)) != 0;
 
                 float offset = 0.5f;
@@ -418,13 +462,13 @@ namespace VoxelPainter.Utils
                 {
                     offset = (surface - startValue) / (endValue - startValue);
                 }
-                
+
                 int index = verticesOffsets[i];
                 vertices[index].x = EdgeDirection[i, 0] * offset + CubeCornersPositions[startPointLocal, 0] + x;
                 vertices[index].y = EdgeDirection[i, 1] * offset + CubeCornersPositions[startPointLocal, 1] + y;
                 vertices[index].z = EdgeDirection[i, 2] * offset + CubeCornersPositions[startPointLocal, 2] + z;
             }
-            
+
             for (int i = 0; i < TriangleConnectionTableWidth;)
             {
                 int vertexIndex = TriangleConnectionTable[cubeIndex, i];
@@ -437,7 +481,7 @@ namespace VoxelPainter.Utils
                 for (int j = 0; j < 3; j++)
                 {
                     int winding;
-                    
+
                     if (surface > 0)
                     {
                         winding = 2 - j;
@@ -453,7 +497,5 @@ namespace VoxelPainter.Utils
                 }
             }
         }
-        
-        public const int MaximumTrianglesPerCube = 5;
     }
 }

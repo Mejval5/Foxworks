@@ -4,40 +4,47 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.Fox
+namespace Foxworks.Editor
 {
-	public static class ForceSaveAssetsTool
-	{
-		[MenuItem("Assets/Reserialize Assets", false, -999)]
-		public static void ReserializeAssets()
-		{
-			Object[] selectionObjects = Selection.objects;
+    /// <summary>
+    /// Force save assets tool.
+    /// Allows for reserializing assets to fix issues with assets that are not properly serialized.
+    /// </summary>
+    public static class ForceSaveAssetsTool
+    {
+        [MenuItem("Assets/Reserialize Assets", false, -999)]
+        public static void ReserializeAssets()
+        {
+            Object[] selectionObjects = Selection.objects;
 
-			List<string> paths = new List<string>();
-			for (int index = 0; index < selectionObjects.Length; ++index)
-			{
-				Object selectionObject = selectionObjects[index];
-				if (selectionObject != null)
-				{
-					string path = AssetDatabase.GetAssetPath(selectionObject);
-					paths.Add(path);
-					if (Directory.Exists(path))
-					{
-						paths.AddRange(Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Where(m => !m.EndsWith(".meta")).Select(m => m.Replace("\\", "/")));
-						paths.AddRange(Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories).Select(m => m.Replace("\\", "/")));
-					}
-				}
-			}
+            List<string> paths = new();
+            foreach (Object selectionObject in selectionObjects)
+            {
+                if (selectionObject == null)
+                {
+                    continue;
+                }
 
-			AssetDatabase.ForceReserializeAssets(paths, ForceReserializeAssetsOptions.ReserializeAssetsAndMetadata);
-			AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
-		}
+                string path = AssetDatabase.GetAssetPath(selectionObject);
+                paths.Add(path);
+                if (!Directory.Exists(path))
+                {
+                    continue;
+                }
 
-		[MenuItem("Tools/FoxUtils/Reserialize all Assets")]
-		public static void ReserializeAllAssets()
-		{
-			AssetDatabase.ForceReserializeAssets();
-			AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
-		}
-	}
+                paths.AddRange(Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Where(m => !m.EndsWith(".meta")).Select(m => m.Replace("\\", "/")));
+                paths.AddRange(Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories).Select(m => m.Replace("\\", "/")));
+            }
+
+            AssetDatabase.ForceReserializeAssets(paths);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+        }
+
+        [MenuItem("Tools/FoxUtils/Reserialize all Assets")]
+        public static void ReserializeAllAssets()
+        {
+            AssetDatabase.ForceReserializeAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+        }
+    }
 }

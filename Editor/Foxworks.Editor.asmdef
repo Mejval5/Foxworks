@@ -2,7 +2,8 @@
     "name": "Foxworks.Editor",
     "rootNamespace": "",
     "references": [
-        "ToolbarExtender.Editor"
+        "ToolbarExtender.Editor",
+        "Foxworks"
     ],
     "includePlatforms": [
         "Editor"

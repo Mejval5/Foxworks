@@ -1,63 +1,67 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Editor.Fox.Utils;
+using Foxworks.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.Fox
+namespace Foxworks.Editor
 {
-	using SelectionMode = SelectionProcessingUtils.SelectionMode;
-	
-	public abstract class RefactoringEditorBase : EditorWindow
-	{
-		protected const float WindowWidth = 500f;
-		protected const float WindowHeight = 400f;
-		
-		[SerializeField] private List<GameObject> _selectedObjects;
+    using SelectionMode = SelectionProcessingUtils.SelectionMode;
 
-		protected bool _overrideSelection;
-		protected bool _replacePrefabs;
-		private SerializedProperty _selectedObjectsProperty;
-		protected SelectionMode _selectionMode;
-		protected SerializedObject _serializedObject;
+    /// <summary>
+    /// Base class for refactoring tools.
+    /// </summary>
+    public abstract class RefactoringEditorBase : EditorWindow
+    {
+        protected const float WindowWidth = 500f;
+        protected const float WindowHeight = 400f;
 
-		private void OnEnable()
-		{
-			_serializedObject = new SerializedObject(this);
-			_selectedObjects = new List<GameObject>();
-			_selectedObjectsProperty = _serializedObject.FindProperty("_selectedObjects");
-		}
+        [SerializeField] private List<GameObject> _selectedObjects;
 
-		protected void OnGUI()
-		{
-			_selectionMode = (SelectionMode)EditorGUILayout.EnumPopup("Replace mode", _selectionMode);
+        protected bool _overrideSelection;
+        protected bool _replacePrefabs;
+        private SerializedProperty _selectedObjectsProperty;
+        protected SelectionMode _selectionMode;
+        protected SerializedObject _serializedObject;
 
-			GUILayout.BeginHorizontal();
-			_overrideSelection = EditorGUILayout.Toggle("Override selection", _overrideSelection);
-			if (_overrideSelection)
-			{
-				_selectedObjects = _selectedObjects.Where(obj => obj != null).ToList();
-				//render the list of objects
-				_serializedObject.Update();
-				EditorGUILayout.PropertyField(_selectedObjectsProperty, new GUIContent("Overriden Selection"), true);
-				_serializedObject.ApplyModifiedProperties();
-			}
-			GUILayout.EndHorizontal();
+        private void OnEnable()
+        {
+            _serializedObject = new SerializedObject(this);
+            _selectedObjects = new List<GameObject>();
+            _selectedObjectsProperty = _serializedObject.FindProperty("_selectedObjects");
+        }
 
-			_replacePrefabs = EditorGUILayout.Toggle("Can replace Prefabs", _replacePrefabs);
+        protected void OnGUI()
+        {
+            _selectionMode = (SelectionMode)EditorGUILayout.EnumPopup("Replace mode", _selectionMode);
 
-			EditorUtils.ShowHorizontalLine();
+            GUILayout.BeginHorizontal();
+            _overrideSelection = EditorGUILayout.Toggle("Override selection", _overrideSelection);
+            if (_overrideSelection)
+            {
+                _selectedObjects = _selectedObjects.Where(obj => obj != null).ToList();
+                //render the list of objects
+                _serializedObject.Update();
+                EditorGUILayout.PropertyField(_selectedObjectsProperty, new GUIContent("Overriden Selection"), true);
+                _serializedObject.ApplyModifiedProperties();
+            }
 
-			DrawCustomGUI();
+            GUILayout.EndHorizontal();
 
-			EditorUtils.ShowHorizontalLine();
+            _replacePrefabs = EditorGUILayout.Toggle("Can replace Prefabs", _replacePrefabs);
 
-			// show info box
-			EditorGUILayout.HelpBox("This tool's changes can be undone, CTRL+Z.\n"
-			                        + "Still, don't forget to check in your work often.",
-				MessageType.Info);
-		}
+            EditorUtils.ShowHorizontalLine();
 
-		protected abstract void DrawCustomGUI();
-	}
+            DrawCustomGUI();
+
+            EditorUtils.ShowHorizontalLine();
+
+            // show info box
+            EditorGUILayout.HelpBox("This tool's changes can be undone, CTRL+Z.\n"
+                                    + "Still, don't forget to check in your work often.",
+                MessageType.Info);
+        }
+
+        protected abstract void DrawCustomGUI();
+    }
 }

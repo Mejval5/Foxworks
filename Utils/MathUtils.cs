@@ -1,21 +1,36 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace Fox.Utils
+namespace Foxworks.Utils
 {
     public class MathUtils
     {
+        /// <summary>
+        ///     Simple cubic easing in function.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
         public static float EaseInOutCubic(float x)
         {
             return x < 0.5 ? 4 * x * x * x : 1 - Mathf.Pow(-2 * x + 2, 3) / 2;
         }
 
+        /// <summary>
+        ///     Returns a random sign.
+        /// </summary>
+        /// <returns></returns>
         public static int RandomSign()
         {
-            return (int) Mathf.Pow(-1, Random.Range(1, 3));
+            return (int)Mathf.Pow(-1, Random.Range(1, 3));
         }
-        
+
+        /// <summary>
+        ///     Returns a value between the min and max value.
+        ///     The value is generated using a Gaussian distribution.
+        /// </summary>
+        /// <param name="minValue"></param>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
         public static float RandomGaussian(float minValue = 0.0f, float maxValue = 1.0f)
         {
             float u;
