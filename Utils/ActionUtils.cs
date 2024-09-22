@@ -8,20 +8,20 @@ namespace Foxworks.Utils
     public static class ActionUtils
     {
 	    /// <summary>
-	    ///     This method invokes the given action with the given parameter.
-	    ///     No exception is thrown if subscriber throws an exception.
-	    ///     The exceptions of the subscribers are logged.
+	    /// This method invokes the given action with the given parameter.
+	    /// No exception is thrown if subscriber throws an exception.
+	    /// The exceptions of the subscribers are logged.
 	    /// </summary>
 	    /// <param name="action">The action</param>
-	    public static void InvokeAndLogExceptions(Action action)
+	    public static void InvokeAndLogExceptions(this Action action)
         {
             InvokeAndLogExceptionsPrivate(action);
         }
 
 	    /// <summary>
-	    ///     This method invokes the given action with the given parameter.
-	    ///     No exception is thrown if subscriber throws an exception.
-	    ///     The exceptions of the subscribers are logged.
+	    /// This method invokes the given action with the given parameter.
+	    /// No exception is thrown if subscriber throws an exception.
+	    /// The exceptions of the subscribers are logged.
 	    /// </summary>
 	    /// <typeparam name="T">Type of param</typeparam>
 	    /// <param name="action">The action</param>
@@ -32,9 +32,9 @@ namespace Foxworks.Utils
         }
 
 	    /// <summary>
-	    ///     This method invokes the given action with the given parameter.
-	    ///     No exception is thrown if subscriber throws an exception.
-	    ///     The exceptions of the subscribers are logged.
+	    /// This method invokes the given action with the given parameter.
+	    /// No exception is thrown if subscriber throws an exception.
+	    /// The exceptions of the subscribers are logged.
 	    /// </summary>
 	    /// <typeparam name="T1">Type of param 1</typeparam>
 	    /// <typeparam name="T2">Type of param 2</typeparam>
@@ -47,9 +47,9 @@ namespace Foxworks.Utils
         }
 
 	    /// <summary>
-	    ///     This method invokes the given action with the given parameter.
-	    ///     No exception is thrown if subscriber throws an exception.
-	    ///     The exceptions of the subscribers are logged.
+	    /// This method invokes the given action with the given parameter.
+	    /// No exception is thrown if subscriber throws an exception.
+	    /// The exceptions of the subscribers are logged.
 	    /// </summary>
 	    /// <typeparam name="T1">Type of param 1</typeparam>
 	    /// <typeparam name="T2">Type of param 2</typeparam>

@@ -10,7 +10,9 @@ namespace Foxworks.UX
         /// </summary>
         public static void Vibrate()
         {
+#if UNITY_ANDROID
             Handheld.Vibrate();
+#endif
         }
     }
 }

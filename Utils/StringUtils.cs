@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
-using Unity.Plastic.Newtonsoft.Json;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -104,28 +103,6 @@ namespace Foxworks.Utils
 		public static string JoinIgnoringNullAndEmpty(string separator, IEnumerable<string> values)
 		{
 			return string.Join(separator, values.Where(s => !string.IsNullOrEmpty(s)));
-		}
-
-		/// <summary>
-		/// Stringifies exception that might contain sensitive data that shouldn't be printed.
-		/// </summary>
-		/// <param name="exception"></param>
-		/// <returns></returns>
-		public static string ToStringSensitiveData(Exception exception)
-		{
-			// If we are in editor we want the non privatized string
-			if (Application.isEditor)
-			{
-				return exception.ToString();
-			}
-
-			// By default JsonSerializationException prints the json that failed to be deserialized which can leak personal data
-			if (exception is JsonSerializationException)
-			{
-				return $"Exception of type {exception.GetType()} was thrown.\n{exception.StackTrace}";
-			}
-
-			return exception.ToString();
 		}
 
 		/// <summary>
