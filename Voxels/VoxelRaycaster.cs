@@ -1,5 +1,6 @@
 ﻿using Unity.Collections;
 using UnityEngine;
+using VoxelPainter.Rendering.Utils;
 
 namespace Foxworks.Voxels
 {
@@ -29,7 +30,7 @@ namespace Foxworks.Voxels
         /// <param name="verticesValues"></param>
         /// <param name="gridOrigin"></param>
         /// <returns></returns>
-        public static HitMeshInfo RayMarch(Ray ray, float stepSize, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues, Vector3 gridOrigin)
+        public static HitMeshInfo RayMarch(Ray ray, float stepSize, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues, Vector3 gridOrigin)
         {
             HitMeshInfo hitInfo = new();
             Vector3 gridSpacing = new(1f, 1f, 1f);
@@ -110,7 +111,7 @@ namespace Foxworks.Voxels
             return true;
         }
 
-        private static float SampleScalarField(Vector3 position, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues, Vector3 gridOrigin, Vector3 gridSpacing,
+        private static float SampleScalarField(Vector3 position, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues, Vector3 gridOrigin, Vector3 gridSpacing,
             bool detectSmallFeatures = false)
         {
             // Convert world position to grid indices
@@ -142,14 +143,14 @@ namespace Foxworks.Voxels
             int index011 = index001 + vertexAmountX;
             int index111 = index011 + 1;
 
-            float c000 = verticesValues[index000];
-            float c100 = verticesValues[index100];
-            float c010 = verticesValues[index010];
-            float c001 = verticesValues[index001];
-            float c110 = verticesValues[index110];
-            float c101 = verticesValues[index101];
-            float c011 = verticesValues[index011];
-            float c111 = verticesValues[index111];
+            float c000 = VoxelDataUtils.UnpackValue(verticesValues[index000]);
+            float c100 = VoxelDataUtils.UnpackValue(verticesValues[index100]);
+            float c010 = VoxelDataUtils.UnpackValue(verticesValues[index010]);
+            float c001 = VoxelDataUtils.UnpackValue(verticesValues[index001]);
+            float c110 = VoxelDataUtils.UnpackValue(verticesValues[index110]);
+            float c101 = VoxelDataUtils.UnpackValue(verticesValues[index101]);
+            float c011 = VoxelDataUtils.UnpackValue(verticesValues[index011]);
+            float c111 = VoxelDataUtils.UnpackValue(verticesValues[index111]);
 
             float c00 = Mathf.Lerp(c000, c100, xd);
             float c01 = Mathf.Lerp(c001, c101, xd);
@@ -170,7 +171,7 @@ namespace Foxworks.Voxels
             return maxHit;
         }
 
-        private static Vector3 RefineIntersection(Ray ray, Vector3 start, Vector3 end, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<float> verticesValues,
+        private static Vector3 RefineIntersection(Ray ray, Vector3 start, Vector3 end, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues,
             Vector3 gridOrigin, Vector3 gridSpacing)
         {
             const int maxIterations = 10;
@@ -180,7 +181,6 @@ namespace Foxworks.Voxels
             Vector3 b = end;
 
             float valueA = SampleScalarField(a, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing) - threshold;
-            float valueB = SampleScalarField(b, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing) - threshold;
 
             for (int i = 0; i < maxIterations; i++)
             {
@@ -195,7 +195,6 @@ namespace Foxworks.Voxels
                 if (valueA * valueMid < 0)
                 {
                     b = mid;
-                    valueB = valueMid;
                 }
                 else
                 {

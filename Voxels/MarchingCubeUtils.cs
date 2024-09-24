@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
+using VoxelPainter.Rendering.Utils;
 
 namespace Foxworks.Voxels
 {
@@ -416,7 +417,7 @@ namespace Foxworks.Voxels
         /// <param name="useLerp"></param>
         public static void GetMarchedCube(
             int[] baseVerticesOffsets,
-            NativeArray<float> values,
+            NativeArray<int> values,
             int[] verticesOffsets,
             float surface,
             Vector3[] vertices,
@@ -430,7 +431,7 @@ namespace Foxworks.Voxels
             int cubeIndex = 0;
             for (int i = 0; i < CornersPerCube; i++)
             {
-                if (values[baseVerticesOffsets[i] + baseIndexOffset] > surface)
+                if (VoxelDataUtils.UnpackValue(values[baseVerticesOffsets[i] + baseIndexOffset]) > surface)
                 {
                     cubeIndex |= 1 << i;
                 }
@@ -452,8 +453,8 @@ namespace Foxworks.Voxels
                 int startPoint = baseVerticesOffsets[startPointLocal] + baseIndexOffset;
                 int endPoint = baseVerticesOffsets[endPointLocal] + baseIndexOffset;
 
-                float startValue = values[startPoint];
-                float endValue = values[endPoint];
+                float startValue = VoxelDataUtils.UnpackValue(values[startPoint]);
+                float endValue = VoxelDataUtils.UnpackValue(values[endPoint]);
 
                 bool hasCrossing = (cubeEdgeFlags & (1 << i)) != 0;
 
