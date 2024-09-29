@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace Foxworks.Persistence
 {
-	/// <summary>
-	///     Manages saving and loading data to and from the persistent data path.
-	/// </summary>
-	public static class SaveManager
+    /// <summary>
+    ///     Manages saving and loading data to and from the persistent data path.
+    /// </summary>
+    public static class SaveManager
     {
         private const string SaveData = "SaveData";
 
@@ -68,6 +68,17 @@ namespace Foxworks.Persistence
             }
 
             return await LoadFromFileAsync<T>(filePath);
+        }
+
+        /// <summary>
+        ///     Checks if the data exists in the persistent data path.
+        /// </summary>
+        /// <param name="dataId"></param>
+        /// <returns></returns>
+        public static bool Exists(string dataId)
+        {
+            string filePath = GetFilePathFromId(dataId);
+            return File.Exists(filePath);
         }
 
         private static T LoadFromFile<T>(string filePath)

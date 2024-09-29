@@ -30,7 +30,16 @@ namespace Foxworks.Voxels
         /// <param name="verticesValues"></param>
         /// <param name="gridOrigin"></param>
         /// <returns></returns>
-        public static HitMeshInfo RayMarch(Ray ray, float stepSize, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues, Vector3 gridOrigin)
+        public static HitMeshInfo RayMarch(
+            Ray ray, 
+            float stepSize, 
+            float threshold, 
+            int vertexAmountX, 
+            int vertexAmountY, 
+            int vertexAmountZ, 
+            NativeArray<int> verticesValues, 
+            Vector3 gridOrigin,
+            bool hitExitWalls = false)
         {
             HitMeshInfo hitInfo = new();
             Vector3 gridSpacing = new(1f, 1f, 1f);
@@ -43,6 +52,7 @@ namespace Foxworks.Voxels
             // Check if the ray intersects the voxel grid bounds
             if (!RayIntersectsBox(ray, gridMin, gridMax, out float tMin, out float tMax))
             {
+                hitInfo.IsHit = false;
                 return hitInfo; // No intersection with the grid
             }
 
@@ -72,11 +82,21 @@ namespace Foxworks.Voxels
 
                 hitInfo.HitPoint = intersectionPoint;
                 hitInfo.IsHit = true;
-                // You can calculate the voxel index if needed
-                break;
+                return hitInfo;
             }
 
+            // No intersection found
+            if (hitExitWalls == false)
+            {
+                hitInfo.IsHit = false;
+                return hitInfo;
+            }
+
+            // Return the exit point
+            hitInfo.HitPoint = currentPosition;
+            hitInfo.IsHit = true;
             return hitInfo;
+
         }
 
         private static bool RayIntersectsBox(Ray ray, Vector3 min, Vector3 max, out float tMin, out float tMax)

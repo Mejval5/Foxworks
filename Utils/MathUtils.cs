@@ -6,16 +6,6 @@ namespace Foxworks.Utils
     public class MathUtils
     {
         /// <summary>
-        ///     Simple cubic easing in function.
-        /// </summary>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        public static float EaseInOutCubic(float x)
-        {
-            return x < 0.5 ? 4 * x * x * x : 1 - Mathf.Pow(-2 * x + 2, 3) / 2;
-        }
-
-        /// <summary>
         ///     Returns a random sign.
         /// </summary>
         /// <returns></returns>
