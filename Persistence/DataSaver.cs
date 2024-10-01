@@ -17,7 +17,6 @@ namespace Foxworks.Persistence
     /// <summary>
     ///     Manages saving and loading data to and from the persistent data path.
     /// </summary>
-    [InitializeOnLoad]
     public static class SaveManager
     {
         private static bool DebugMode { get; } = false;
