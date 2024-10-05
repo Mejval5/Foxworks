@@ -1,7 +1,9 @@
 ﻿using Foxworks.Sound;
+using Foxworks.Utils;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Foxworks.Components.UI
 {
@@ -10,299 +12,240 @@ namespace Foxworks.Components.UI
     ///     <para>If the user moves cursor outside of the button before clicking up then the button cancels.</para>
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
-    public class JuicyButton : MonoBehaviour
+    public class JuicyButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
     {
-        public bool Interactable = true;
+        [Header("Settings")]
+        [SerializeField] private bool _interactable = true;
+        
         [Header("Parameters")]
-        public float minPercent = 0.8f;
-        public float speed = 9f;
-        public float cancelDistance = 40f;
-        public float sinScale = 1.2f;
-        public float disableAlpha = 0.5f;
-        [Header("Event OnClicked")]
-        public UnityEvent clicked;
-
-        private EventTrigger _eventTrigger;
+        [SerializeField] private float _disableAlpha = 0.5f;
+        
+        [Header("Advanced Settings")]
+        [SerializeField] private EasingType _easingType = EasingType.ElasticOut;
+        [SerializeField] private float _minSize = 0.9f;
+        [SerializeField] private float _maxSize = 1.1f;
+        [SerializeField] private float _animationTime = 0.1f;
+        [SerializeField] private float _cancelDistancePercentage = 50f;
+        
+        [Header("Sound")]
+        [SerializeField] private AudioClip _clickedSound;
+        
+        [HideInInspector] public UnityEvent Clicked = new ();
+        
         private Vector3 _originalScale;
         private RectTransform _rect;
-        private bool _pressed;
+        
+        private Vector3 _startPos;
+        private bool _currentlyPressed;
+        private Vector2 _cancelDistance;
+        private bool _currentlyHovered = false;
 
-        private bool _growAnimationRun;
-        private bool _shrinkAnimationRun;
-
-        private float _startPercent;
-        private float _currentPercent;
-        private float _timeVar;
-
-        private float _startT;
-        private float _currentT;
-        private float _currentScale;
-        private float _stopT;
         private Canvas _mainCanvas;
         private CanvasGroup _canvasGroup;
-        public AudioClip ClickedSound;
-
+        
+        private Coroutine _currentAnimation;
+        
+        public bool Interactable
+        {
+            get => _interactable;
+            set => _interactable = value;
+        }
+        
+        public float DisableAlpha
+        {
+            get => _disableAlpha;
+            set => _disableAlpha = value;
+        }
+        
         private void Awake()
         {
-            _canvasGroup = GetComponent<CanvasGroup>();
-            _eventTrigger = gameObject.AddComponent<EventTrigger>();
             _rect = GetComponent<RectTransform>();
-            if (clicked == null)
-            {
-                clicked = new UnityEvent();
-            }
-
             _originalScale = _rect.localScale;
+            _originalScale.z = 1;
+            
+            _canvasGroup = GetComponent<CanvasGroup>();
             _mainCanvas = GetComponentInParent<Canvas>().rootCanvas;
-        }
-
-
-        public void RemoveAllListeners()
-        {
-            clicked.RemoveAllListeners();
-        }
-
-        /// <summary>
-        ///     Register listener to the clicked event
-        /// </summary>
-        public void AddListener(UnityAction action)
-        {
-            clicked.AddListener(action);
-        }
-
-        /// <summary>
-        ///     Unregister listener from the clicked event
-        /// </summary>
-        public void RemoveListener(UnityAction action)
-        {
-            clicked.RemoveListener(action);
         }
 
         private void OnEnable()
         {
-            _pressed = false;
-            SetupTriggers();
+            _currentlyHovered = false;
+            _currentlyPressed = false;
+            CancelCurrentAnimation();
+            ResetVisual();
         }
 
-        /// <summary>
-        ///     This method sets up all triggers for user input
-        /// </summary>
-        private void SetupTriggers()
+        private void ResetVisual()
         {
-            EventTrigger.Entry dragger = new();
-            dragger.eventID = EventTriggerType.Drag;
-            dragger.callback.AddListener(data => { CheckDistanceOfMouse((PointerEventData)data); });
-            _eventTrigger.triggers.Add(dragger);
-
-            EventTrigger.Entry pointerDown = new();
-            pointerDown.eventID = EventTriggerType.PointerDown;
-            pointerDown.callback.AddListener(data => { PointerDown((PointerEventData)data); });
-            _eventTrigger.triggers.Add(pointerDown);
-
-            EventTrigger.Entry pointerUp = new();
-            pointerUp.eventID = EventTriggerType.PointerUp;
-            pointerUp.callback.AddListener(data => { PointerUp((PointerEventData)data); });
-            _eventTrigger.triggers.Add(pointerUp);
+            _rect.localScale = new Vector3(_originalScale.x, _originalScale.y, _originalScale.z);
         }
 
-        /// <summary>
-        ///     This method removes all triggers for user input
-        /// </summary>
-        private void RemoveTriggers()
+        private void CancelCurrentAnimation()
         {
-            _eventTrigger.triggers.Clear();
+            if (_currentAnimation == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_currentAnimation);
+            _currentAnimation = null;
+        }
+        
+        /// <summary>
+        /// Necessary for the button to work with ScrollRect and similar things
+        /// </summary>
+        /// <param name="eventData"></param>
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            IBeginDragHandler parentDragHandler = transform.parent.GetComponentInParent<IBeginDragHandler>();
+            parentDragHandler?.OnBeginDrag(eventData);
+        }
+        
+        /// <summary>
+        /// Necessary for the button to work with ScrollRect and similar things
+        /// </summary>
+        /// <param name="eventData"></param>
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            IEndDragHandler parentDragHandler = transform.parent.GetComponentInParent<IEndDragHandler>();
+            parentDragHandler?.OnEndDrag(eventData);
         }
 
         /// <summary>
         ///     This is a check if the user moved cursor outside of the button while holding down button.
         /// </summary>
-        private void CheckDistanceOfMouse(PointerEventData data)
+        public void OnDrag(PointerEventData eventData)
         {
-            if (!_pressed)
+            IDragHandler parentDragHandler = transform.parent.GetComponentInParent<IDragHandler>();
+            parentDragHandler?.OnDrag(eventData);
+
+            if (_currentlyPressed == false || _interactable == false)
             {
                 return;
             }
 
-            Vector3 pos = RectTransformUtility.WorldToScreenPoint(_mainCanvas.worldCamera, _rect.position);
-
-            float diffX = data.position.x - pos.x;
-            float diffY = data.position.y - pos.y;
+            float diffX = eventData.position.x - _startPos.x;
+            float diffY = eventData.position.y - _startPos.y;
 
             Vector2 distanceVector = new(Mathf.Abs(diffX), Mathf.Abs(diffY));
 
-            bool cancelX = distanceVector.x > _rect.rect.size.x / 2 + cancelDistance;
-            bool cancelY = distanceVector.y > _rect.rect.size.y / 2 + cancelDistance;
+            bool cancelX = distanceVector.x > _cancelDistance.x;
+            bool cancelY = distanceVector.y > _cancelDistance.y;
 
-            if (cancelX || cancelY)
+            if (!cancelX && !cancelY)
             {
-                _pressed = false;
-                GrowStart();
+                return;
             }
+
+            _currentlyPressed = false;
+            AnimateToSize(1f);
         }
 
         /// <summary>
         ///     Gets called when user clicks down on the button
         /// </summary>
-        private void PointerDown(PointerEventData _)
+        public void OnPointerDown(PointerEventData _)
         {
-            if (!Interactable)
+            if (_interactable == false)
             {
                 return;
             }
-
-            _pressed = true;
-            StopAllAnimations();
-            ShrinkStart();
+            
+            _startPos = RectTransformUtility.WorldToScreenPoint(_mainCanvas.worldCamera, _rect.position);
+            _currentlyPressed = true;
+            
+            Rect rect = _rect.rect;
+            _cancelDistance = _cancelDistancePercentage / 100f * new Vector2(rect.width, rect.height);
+            
+            AnimateToSize(_minSize);
         }
 
         /// <summary>
         ///     Gets called when user clicks up after clicking down
         /// </summary>
-        private void PointerUp(PointerEventData _)
+        public void OnPointerUp(PointerEventData _)
         {
-            if (!_pressed)
+            if (!_currentlyPressed)
+            {
+                return;
+            }
+            
+            _currentlyPressed = false;
+            float targetSize = _currentlyHovered ? _maxSize : 1;
+            AnimateToSize(targetSize);
+
+            if (_interactable == false)
             {
                 return;
             }
 
-            StopAllAnimations();
-            GrowStart();
-
-            if (Interactable)
-            {
-                clicked.Invoke();
-            }
-
+            Clicked.Invoke();
             PlaySound();
+        }
+
+        private void AnimateToSize(float targetSize)
+        {
+            CancelCurrentAnimation();
+            _currentAnimation = StartCoroutine(transform.AnimateScale(_originalScale * targetSize, _animationTime, _easingType));
         }
 
         private void PlaySound()
         {
-            if (ClickedSound != null && SoundManager.shared != null)
+            if (_clickedSound != null && SoundManager.shared != null)
             {
-                SoundManager.shared.PlaySfx(ClickedSound);
+                SoundManager.shared.PlaySfx(_clickedSound);
             }
         }
-
-        /// <summary>
-        ///     Clears all animations on the button
-        /// </summary>
-        private void StopAllAnimations()
-        {
-            _growAnimationRun = false;
-            _shrinkAnimationRun = false;
-        }
-
+        
         private void Update()
         {
-            if (_shrinkAnimationRun)
-            {
-                Shrink();
-            }
-
-            if (_growAnimationRun)
-            {
-                Grow();
-            }
-
-            ToggleInteractability();
+            ToggleInteractableState();
         }
 
 
-        private void ToggleInteractability()
+        private void ToggleInteractableState()
         {
-            if (Interactable)
-            {
-                _canvasGroup.alpha = 1f;
-            }
-            else
-            {
-                _canvasGroup.alpha = disableAlpha;
-            }
+            _canvasGroup.alpha = _interactable ? 1f : _disableAlpha;
         }
 
-        /// <summary>
-        ///     Starts shrinking animation
-        /// </summary>
-        private void ShrinkStart()
+        protected void OnDisable()
         {
-            _shrinkAnimationRun = true;
-            _startPercent = _rect.localScale.x / _originalScale.x;
-            _currentPercent = _startPercent;
-            _timeVar = GetTime();
-        }
-
-        /// <summary>
-        ///     Starts growing animation
-        /// </summary>
-        private void GrowStart()
-        {
-            _growAnimationRun = true;
-            _startPercent = _rect.localScale.x / _originalScale.x;
-            _startT = GetAsin(_startPercent);
-            _currentT = _startT;
-            _timeVar = GetTime();
-            _stopT = Mathf.PI - GetAsin(1);
-        }
-
-        /// <summary>
-        ///     Shrinking animation loop
-        /// </summary>
-        private void Shrink()
-        {
-            _currentPercent = Mathf.Lerp(_startPercent, minPercent, (GetTime() - _timeVar) * speed);
-            _rect.localScale = new Vector3(_currentPercent * _originalScale.x, _currentPercent * _originalScale.y, 1);
-            if (_currentPercent <= minPercent)
-            {
-                _rect.localScale = new Vector3(minPercent * _originalScale.x, minPercent * _originalScale.y, 1);
-                _shrinkAnimationRun = false;
-            }
-        }
-
-        /// <summary>
-        ///     Growing animation loop
-        /// </summary>
-        private void Grow()
-        {
-            _currentT = Mathf.Lerp(_startT, _stopT, (GetTime() - _timeVar) / 2 * speed);
-            _currentScale = SinFunc(_currentT);
-            _rect.localScale = new Vector3(_currentScale * _originalScale.x, _currentScale * _originalScale.y, 1);
-            if (_currentT >= _stopT)
-            {
-                _rect.localScale = new Vector3(_originalScale.x, _originalScale.y, 1);
-                _growAnimationRun = false;
-            }
-        }
-
-        private void OnDisable()
-        {
-            RemoveTriggers();
+            CancelCurrentAnimation();
             _rect.localScale = new Vector3(_originalScale.x, _originalScale.y, 1);
-            StopAllAnimations();
+        }
+        
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            _currentlyHovered = true;
+            
+            if (_interactable == false)
+            {
+                return;
+            }
+            
+            if (_currentlyPressed)
+            {
+                return;
+            }
+            
+            AnimateToSize(_maxSize);
         }
 
-        /// <summary>
-        ///     Method to get scaled time easily
-        /// </summary>
-        private float GetTime()
+        public void OnPointerExit(PointerEventData eventData)
         {
-            return Time.time;
-        }
-
-        /// <summary>
-        ///     Custom Sin function for animations
-        /// </summary>
-        private float SinFunc(float t)
-        {
-            return sinScale * Mathf.Sin(t);
-        }
-
-        /// <summary>
-        ///     Custom ASin function for animations
-        /// </summary>
-        private float GetAsin(float t)
-        {
-            return Mathf.Asin(t / sinScale);
+            _currentlyHovered = false;
+            
+            if (_interactable == false)
+            {
+                return;
+            }
+            
+            if (_currentlyPressed)
+            {
+                return;
+            }
+            
+            AnimateToSize(1f);
         }
     }
 }

@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using Foxworks.Persistence;
+using Foxworks.Utils;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
@@ -33,6 +35,12 @@ namespace Foxworks.Editor
                 OpenFolderInVSCodeInsiders();
             }
 
+            GUILayout.Space(3);
+            if (GUILayout.Button(new GUIContent("Saves", "Opens Saves folder for this project.")))
+            {
+                OpenSavesFolder();
+            }
+
             GUILayout.FlexibleSpace();
 
             if (GUILayout.Button(new GUIContent("RC", "Refreshes the asset database and recompiles all scripts manually.")))
@@ -40,6 +48,13 @@ namespace Foxworks.Editor
                 AssetDatabase.Refresh();
                 CompilationPipeline.RequestScriptCompilation();
             }
+        }
+
+        public static void OpenSavesFolder()
+        {
+             SaveManager.SavePath.EnsureFolderExists();
+             
+             Process.Start(SaveManager.SavePath);
         }
 
         public static void OpenFolderInVSCodeInsiders()

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Foxworks.Components.CanvasUtils
+namespace Foxworks.Components.UI
 {
     [ExecuteAlways]
     [RequireComponent(typeof(CanvasGroup), typeof(Canvas))]

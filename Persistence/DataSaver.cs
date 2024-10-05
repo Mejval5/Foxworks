@@ -25,14 +25,14 @@ namespace Foxworks.Persistence
         private const string SaveDataExtension = ".json";
         private static string[] ByteDataExtensions { get; } = {".zip", ".png", ".bytes"};
 
-        private static string PersistentDataPath { get; } = Application.persistentDataPath + "/SaveData/";
+        public static string SavePath { get; } = Application.persistentDataPath + "/SaveData/";
         
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> Semaphores = new();
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> SaveCancelTokens = new ();
 
         static SaveManager()
         {
-            PersistentDataPath.EnsureFolderExists();
+            SavePath.EnsureFolderExists();
 #if UNITY_EDITOR
             EditorApplication.playModeStateChanged -= ResetInEditor;
             EditorApplication.playModeStateChanged += ResetInEditor;
@@ -42,7 +42,7 @@ namespace Foxworks.Persistence
 #if UNITY_EDITOR
         private static void ResetInEditor(PlayModeStateChange state)
         {
-            if (state is not (PlayModeStateChange.EnteredPlayMode or PlayModeStateChange.EnteredEditMode))
+            if (state is not (PlayModeStateChange.ExitingEditMode or PlayModeStateChange.ExitingPlayMode))
             {
                 return;
             }
@@ -102,7 +102,7 @@ namespace Foxworks.Persistence
         /// <param name="item"></param>
         /// <param name="extension"></param>
         /// <typeparam name="T"></typeparam>
-        public static async Task SaveAsync<T>(string dataId, T item, string extension = SaveDataExtension)
+        public static async Task SaveAsync<T>(string dataId, T item, string extension = SaveDataExtension, CancellationToken cancellationToken = default)
         {
             Log($"Saving data to {dataId}");
             
@@ -119,7 +119,7 @@ namespace Foxworks.Persistence
             cts = new CancellationTokenSource();
             SaveCancelTokens[dataId] = cts;
 
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(cancellationToken);
             
             try
             {
@@ -127,12 +127,12 @@ namespace Foxworks.Persistence
 
                 if (item is byte[] bytes)
                 {
-                    await File.WriteAllBytesAsync(filePath, bytes);
+                    await File.WriteAllBytesAsync(filePath, bytes, cancellationToken);
                 }
                 else
                 {
                     string data = SerializeData(item);
-                    await File.WriteAllTextAsync(filePath, data);
+                    await File.WriteAllTextAsync(filePath, data, cancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -167,17 +167,17 @@ namespace Foxworks.Persistence
         /// <param name="extension"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static async Task<T> LoadAsync<T>(string dataId, string extension = SaveDataExtension)
+        public static async Task<T> LoadAsync<T>(string dataId, string extension = SaveDataExtension, CancellationToken cancellationToken = default)
         {
             Log($"Loading data from {dataId}");
             
             SemaphoreSlim semaphore = Semaphores.GetOrAdd(dataId, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(cancellationToken);
             
             try
             {
                 string filePath = GetFilePathFromId(dataId, extension);
-                return File.Exists(filePath) == false ? default : await LoadFromFileAsync<T>(filePath);
+                return File.Exists(filePath) == false ? default : await LoadFromFileAsync<T>(filePath, cancellationToken);
             }
             finally
             {
@@ -203,13 +203,7 @@ namespace Foxworks.Persistence
             {
                 byte[] data = File.ReadAllBytes(filePath);
         
-                // Check if T is byte[], return the data if it is
-                if (typeof(T) == typeof(byte[]))
-                {
-                    return (T)(object)data;
-                }
-                
-                throw new InvalidCastException($"Cannot cast byte[] to {typeof(T)}. Make sure the file format matches the expected type.");
+                return (T)(object)data;
             }
             else
             {
@@ -218,24 +212,17 @@ namespace Foxworks.Persistence
             }
         }
 
-        private static async Task<T> LoadFromFileAsync<T>(string filePath)
+        private static async Task<T> LoadFromFileAsync<T>(string filePath, CancellationToken cancellationToken)
         {
             if (ByteDataExtensions.Contains(Path.GetExtension(filePath)))
             {
-                byte[] data = await File.ReadAllBytesAsync(filePath);
+                byte[] data = await File.ReadAllBytesAsync(filePath, cancellationToken);
                 
-                // Check if T is byte[], return the data if it is
-                if (typeof(T) == typeof(byte[]))
-                {
-                    return (T)(object)data;
-                }
-                
-                // Handle error case where T is not byte[]
-                throw new InvalidCastException($"Cannot cast byte[] to {typeof(T)}. Make sure the file format matches the expected type.");
+                return (T)(object)data;
             }
             else
             {
-                string data = await File.ReadAllTextAsync(filePath);
+                string data = await File.ReadAllTextAsync(filePath, cancellationToken);
                 return DeserializeData<T>(data);
             }
         }
@@ -243,7 +230,7 @@ namespace Foxworks.Persistence
         private static string GetFilePathFromId(string dataId, string extension)
         {
             string fileName = $"{dataId}_{SaveData}.{extension}";
-            return Path.Combine(PersistentDataPath, fileName);
+            return Path.Combine(SavePath, fileName);
         }
 
         private static T DeserializeData<T>(string data)
