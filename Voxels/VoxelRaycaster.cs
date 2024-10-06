@@ -1,6 +1,5 @@
 ﻿using Unity.Collections;
 using UnityEngine;
-using VoxelPainter.Rendering.Utils;
 
 namespace Foxworks.Voxels
 {

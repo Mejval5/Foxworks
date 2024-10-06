@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace VoxelPainter.Rendering.Utils
+namespace Foxworks.Voxels
 {
     public static class VoxelDataUtils
     {
@@ -9,10 +9,28 @@ namespace VoxelPainter.Rendering.Utils
         public const int ValueMask = (1 << ValueBits) - 1;
         public const float ValueMultiplier = 1.0f / ValueMask;
         
-        public const int VertexIdBits = 8; // We consider next bits for vertex id, this is used to encode special data
-        public const int VertexIdMask = (1 << VertexIdBits) - 1; // 255 (0xFF), mask to get 8 bits
+        public const int VertexIdBits = 22; // We consider next bits for vertex id, this is used to encode special data
+        public const int VertexIdMask = (1 << VertexIdBits) - 1;
         
-        public static int PackValueAndVertexId(float value, int vertexId = 0)
+        public static int ConvertTo22Bit(this Color color)
+        {
+            // Adjust the component bit sizes
+            int r = Mathf.Clamp((int)(color.r * 127), 0, 127);  // 7 bits for Red
+            int g = Mathf.Clamp((int)(color.g * 255), 0, 255);  // 8 bits for Green
+            int b = Mathf.Clamp((int)(color.b * 127), 0, 127);  // 7 bits for Blue
+
+            // Pack the color into a 22-bit integer
+            int packedColor = (r << 15) | (g << 7) | b;
+
+            return packedColor;
+        }
+        
+        public static int PackValueAndVertexColor(float value, Color vertexColor)
+        {
+            return PackValueAndVertexColor(value, vertexColor.ConvertTo22Bit());
+        }
+        
+        public static int PackValueAndVertexColor(float value, int vertexId = 0)
         {
             value = Mathf.Clamp01(value);
             
