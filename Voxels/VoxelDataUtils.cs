@@ -15,9 +15,9 @@ namespace Foxworks.Voxels
         public static int ConvertTo22Bit(this Color color)
         {
             // Adjust the component bit sizes
-            int r = Mathf.Clamp((int)(color.r * 127), 0, 127);  // 7 bits for Red
-            int g = Mathf.Clamp((int)(color.g * 255), 0, 255);  // 8 bits for Green
-            int b = Mathf.Clamp((int)(color.b * 127), 0, 127);  // 7 bits for Blue
+            int r = Mathf.Clamp((int)(color.r * 127), 0, 127);
+            int g = Mathf.Clamp((int)(color.g * 255), 0, 255);
+            int b = Mathf.Clamp((int)(color.b * 127), 0, 127);
 
             // Pack the color into a 22-bit integer
             int packedColor = (r << 15) | (g << 7) | b;
@@ -39,6 +39,21 @@ namespace Foxworks.Voxels
             return vertexIdInt | valueInt;
         }
         
+        public static int PackNativeValueAndVertexColor(int valueInt, Color vertexColor)
+        {
+            valueInt &= ValueMask;
+            int vertexId = vertexColor.ConvertTo22Bit();
+            int vertexIdInt = (vertexId & VertexIdMask) << ValueBits;
+            return vertexIdInt | valueInt;
+        }
+        
+        public static int PackValueAndNativeVertexColor(float value, int vertexId = 0)
+        {
+            int valueInt = (int) (value * ValueMask) & ValueMask;
+            int vertexIdInt = (vertexId & VertexIdMask) << ValueBits;
+            return vertexIdInt | valueInt;
+        }
+        
         // Unpack the float value from the packed integer
         public static float UnpackValue(int packedValue)
         {
@@ -54,6 +69,16 @@ namespace Foxworks.Voxels
         {
             // Extract the vertex ID by shifting right by ValueBits (to get rid of the value)
             return (packedValue >> ValueBits) & VertexIdMask;
+        }
+        
+        public static Color UnpackVertexColor(int packedValue)
+        {
+            packedValue = UnpackVertexId(packedValue);
+            return new Color(
+                ((packedValue >> 15) & 127) / 127.0f,
+                ((packedValue >> 7) & 255) / 255.0f,
+                (packedValue & 127) / 127.0f
+            );
         }
     }
 }
