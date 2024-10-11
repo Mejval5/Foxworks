@@ -16,8 +16,6 @@ namespace Foxworks.Voxels
         public const int GreenMask = (1 << GreenBits) - 1;
         public const int BlueMask = (1 << BlueBits) - 1;
         
-        
-        
         public const int ColorBits = RedBits + GreenBits + BlueBits; // We consider next bits for vertex id, this is used to encode special data
         public const int ColorsBitsMask = (1 << ColorBits) - 1;
         
