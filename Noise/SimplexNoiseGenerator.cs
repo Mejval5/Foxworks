@@ -8,7 +8,7 @@ namespace Foxworks.Noise
         ///     Hash lookup table as defined by Ken Perlin. This is a randomly
         ///     arranged array of all numbers from 0-255 inclusive.
         /// </summary>
-        private static readonly int[] perm =
+        private static readonly int[] Perm =
         {
             151, 160, 137, 91, 90, 15,
             131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,
@@ -38,23 +38,23 @@ namespace Foxworks.Noise
             215, 61, 156, 180
         };
 
-        private static readonly int[] permMod12 = new int[512];
+        private static readonly int[] PermMod12 = new int[512];
 
-        private static readonly float[] grad3 =
+        private static readonly float[] Grad3 =
         {
             1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0,
             1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1,
             0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1
         };
 
-        private static readonly float F3 = 1.0f / 3.0f;
-        private static readonly float G3 = 1.0f / 6.0f;
+        private const float F3 = 1.0f / 3.0f;
+        private const float G3 = 1.0f / 6.0f;
 
         static SimplexNoiseGenerator()
         {
             for (int i = 0; i < 512; i++)
             {
-                permMod12[i] = perm[i % 256] % 12;
+                PermMod12[i] = Perm[i % 256] % 12;
             }
         }
 
@@ -71,12 +71,12 @@ namespace Foxworks.Noise
             int k = Mathf.FloorToInt(z + s);
 
             float t = (i + j + k) * G3;
-            float X0 = i - t; // Unskew the cell origin back to (x,y,z) space
-            float Y0 = j - t;
-            float Z0 = k - t;
-            float x0 = x - X0; // The x,y,z distances from the cell origin
-            float y0 = y - Y0;
-            float z0 = z - Z0;
+            float x0Help = i - t; // Unskew the cell origin back to (x,y,z) space
+            float y0Help = j - t;
+            float z0Help = k - t;
+            float x0 = x - x0Help; // The x,y,z distances from the cell origin
+            float y0 = y - y0Help;
+            float z0 = z - z0Help;
 
             // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
             // Determine which simplex we are in.
@@ -160,10 +160,10 @@ namespace Foxworks.Noise
             int kk = k & 255;
 
             // Use modulo operation to wrap indices properly
-            int gi0 = permMod12[(ii + perm[(jj + perm[kk]) % 256]) % 256] * 3;
-            int gi1 = permMod12[(ii + i1 + perm[(jj + j1 + perm[(kk + k1) % 256]) % 256]) % 256] * 3;
-            int gi2 = permMod12[(ii + i2 + perm[(jj + j2 + perm[(kk + k2) % 256]) % 256]) % 256] * 3;
-            int gi3 = permMod12[(ii + 1 + perm[(jj + 1 + perm[(kk + 1) % 256]) % 256]) % 256] * 3;
+            int gi0 = PermMod12[(ii + Perm[(jj + Perm[kk]) % 256]) % 256] * 3;
+            int gi1 = PermMod12[(ii + i1 + Perm[(jj + j1 + Perm[(kk + k1) % 256]) % 256]) % 256] * 3;
+            int gi2 = PermMod12[(ii + i2 + Perm[(jj + j2 + Perm[(kk + k2) % 256]) % 256]) % 256] * 3;
+            int gi3 = PermMod12[(ii + 1 + Perm[(jj + 1 + Perm[(kk + 1) % 256]) % 256]) % 256] * 3;
 
 
             float t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
@@ -175,7 +175,7 @@ namespace Foxworks.Noise
             else
             {
                 t0 *= t0;
-                n0 = t0 * t0 * Dot(grad3, gi0, x0, y0, z0);
+                n0 = t0 * t0 * Dot(Grad3, gi0, x0, y0, z0);
             }
 
             float t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
@@ -187,7 +187,7 @@ namespace Foxworks.Noise
             else
             {
                 t1 *= t1;
-                n1 = t1 * t1 * Dot(grad3, gi1, x1, y1, z1);
+                n1 = t1 * t1 * Dot(Grad3, gi1, x1, y1, z1);
             }
 
             float t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
@@ -199,7 +199,7 @@ namespace Foxworks.Noise
             else
             {
                 t2 *= t2;
-                n2 = t2 * t2 * Dot(grad3, gi2, x2, y2, z2);
+                n2 = t2 * t2 * Dot(Grad3, gi2, x2, y2, z2);
             }
 
             float t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
@@ -211,7 +211,7 @@ namespace Foxworks.Noise
             else
             {
                 t3 *= t3;
-                n3 = t3 * t3 * Dot(grad3, gi3, x3, y3, z3);
+                n3 = t3 * t3 * Dot(Grad3, gi3, x3, y3, z3);
             }
 
             return 32.0f * (n0 + n1 + n2 + n3);

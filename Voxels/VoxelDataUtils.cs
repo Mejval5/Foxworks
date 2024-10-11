@@ -4,53 +4,62 @@ namespace Foxworks.Voxels
 {
     public static class VoxelDataUtils
     {
-        public const int ValueBits = 10; // First bits store value as 0f-1f
+        public const int ValueBits = 11; // First bits store value as 0f-1f
         public const int Values = 1 << ValueBits;
         public const int ValueMask = (1 << ValueBits) - 1;
         public const float ValueMultiplier = 1.0f / ValueMask;
         
-        public const int VertexIdBits = 22; // We consider next bits for vertex id, this is used to encode special data
-        public const int VertexIdMask = (1 << VertexIdBits) - 1;
+        public const int RedBits = 7; // First bits store red color component
+        public const int GreenBits = 7; // Next bits store green color component
+        public const int BlueBits = 7; // Next bits store blue color component
+        public const int RedMask = (1 << RedBits) - 1;
+        public const int GreenMask = (1 << GreenBits) - 1;
+        public const int BlueMask = (1 << BlueBits) - 1;
         
-        public static int ConvertTo22Bit(this Color color)
+        
+        
+        public const int ColorBits = RedBits + GreenBits + BlueBits; // We consider next bits for vertex id, this is used to encode special data
+        public const int ColorsBitsMask = (1 << ColorBits) - 1;
+        
+        public static int ConvertToPackedColor(this Color color)
         {
             // Adjust the component bit sizes
-            int r = Mathf.Clamp((int)(color.r * 127), 0, 127);
-            int g = Mathf.Clamp((int)(color.g * 255), 0, 255);
-            int b = Mathf.Clamp((int)(color.b * 127), 0, 127);
+            int r = Mathf.Clamp(Mathf.RoundToInt(color.r * RedMask), 0, RedMask);
+            int g = Mathf.Clamp(Mathf.RoundToInt(color.g * GreenMask), 0, GreenMask);
+            int b = Mathf.Clamp(Mathf.RoundToInt(color.b * BlueMask), 0, BlueMask);
 
-            // Pack the color into a 22-bit integer
-            int packedColor = (r << 15) | (g << 7) | b;
+            // Pack the color into a single integer
+            int packedColor = (r << (BlueBits + GreenBits)) | (g << BlueBits) | b;
 
             return packedColor;
         }
         
         public static int PackValueAndVertexColor(float value, Color vertexColor)
         {
-            return PackValueAndVertexColor(value, vertexColor.ConvertTo22Bit());
+            return PackValueAndVertexColor(value, vertexColor.ConvertToPackedColor());
         }
         
-        public static int PackValueAndVertexColor(float value, int vertexId = 0)
+        public static int PackValueAndVertexColor(float value, int colorInt = 0)
         {
             value = Mathf.Clamp01(value);
             
             int valueInt = (int) (value * ValueMask) & ValueMask;
-            int vertexIdInt = (vertexId & VertexIdMask) << ValueBits;
+            int vertexIdInt = (colorInt & ColorsBitsMask) << ValueBits;
             return vertexIdInt | valueInt;
         }
         
         public static int PackNativeValueAndVertexColor(int valueInt, Color vertexColor)
         {
             valueInt &= ValueMask;
-            int vertexId = vertexColor.ConvertTo22Bit();
-            int vertexIdInt = (vertexId & VertexIdMask) << ValueBits;
+            int vertexId = vertexColor.ConvertToPackedColor();
+            int vertexIdInt = (vertexId & ColorsBitsMask) << ValueBits;
             return vertexIdInt | valueInt;
         }
         
-        public static int PackValueAndNativeVertexColor(float value, int vertexId = 0)
+        public static int PackValueAndNativeVertexColor(float value, int colorInt = 0)
         {
             int valueInt = (int) (value * ValueMask) & ValueMask;
-            int vertexIdInt = (vertexId & VertexIdMask) << ValueBits;
+            int vertexIdInt = (colorInt & ColorsBitsMask) << ValueBits;
             return vertexIdInt | valueInt;
         }
         
@@ -65,19 +74,19 @@ namespace Foxworks.Voxels
         }
 
         // Unpack the vertex ID from the packed integer
-        public static int UnpackVertexId(int packedValue)
+        public static int UnpackColorInt(int packedValue)
         {
             // Extract the vertex ID by shifting right by ValueBits (to get rid of the value)
-            return (packedValue >> ValueBits) & VertexIdMask;
+            return (packedValue >> ValueBits) & ColorsBitsMask;
         }
         
-        public static Color UnpackVertexColor(int packedValue)
+        public static Color UnpackColor(int packedValue)
         {
-            packedValue = UnpackVertexId(packedValue);
+            packedValue = UnpackColorInt(packedValue);
             return new Color(
-                ((packedValue >> 15) & 127) / 127.0f,
-                ((packedValue >> 7) & 255) / 255.0f,
-                (packedValue & 127) / 127.0f
+                ((packedValue >> (BlueBits + GreenBits)) & RedMask) / (float) RedMask,
+                ((packedValue >> BlueBits) & GreenMask) / (float) GreenMask,
+                (packedValue & BlueMask) / (float) BlueMask
             );
         }
     }

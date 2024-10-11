@@ -73,6 +73,27 @@ namespace Foxworks.Persistence
         }
         
         /// <summary>
+        ///     Deletes the data from the persistent data path.
+        /// </summary>
+        /// <param name="dataId"></param>
+        /// <param name="extension"></param>
+        public static bool Delete(string dataId, string extension = SaveDataExtension)
+        {
+            string filePath = GetFilePathFromId(dataId, extension);
+            try
+            {
+                File.Delete(filePath);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to delete file at path: {filePath}. Exception: {e}");
+                return false;
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
         ///     Saves data to the persistent data path.
         /// </summary>
         /// <param name="dataId"></param>
