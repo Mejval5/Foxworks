@@ -8,6 +8,7 @@ namespace Foxworks.Voxels
         public Vector3 HitPoint;
         public int VertexIndex;
         public bool IsHit;
+        public bool HitExitWall;
         public Ray Ray;
     }
 
@@ -28,6 +29,7 @@ namespace Foxworks.Voxels
         /// <param name="vertexAmountZ"></param>
         /// <param name="verticesValues"></param>
         /// <param name="gridOrigin"></param>
+        /// <param name="hitExitWalls"></param>
         /// <returns></returns>
         public static HitMeshInfo RayMarch(
             Ray ray, 
@@ -67,7 +69,7 @@ namespace Foxworks.Voxels
                 currentPosition += ray.direction * stepSize;
                 distanceTraveled += stepSize;
 
-                float currentValue = SampleScalarField(currentPosition, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing, true);
+                float currentValue = SampleScalarField(currentPosition, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing);
 
                 // Check for crossing
                 if (!(currentValue > threshold))
@@ -78,6 +80,11 @@ namespace Foxworks.Voxels
                 // Crossing detected, refine intersection point
                 Vector3 intersectionPoint = RefineIntersection(ray, currentPosition - ray.direction * stepSize, currentPosition, threshold, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues,
                     gridOrigin, gridSpacing);
+
+                if (Application.isEditor && Input.GetKey(KeyCode.P))
+                {
+                    Debug.DrawLine(ray.origin, intersectionPoint, Color.green, 10f);
+                }
 
                 hitInfo.HitPoint = intersectionPoint;
                 hitInfo.IsHit = true;
@@ -94,6 +101,7 @@ namespace Foxworks.Voxels
             // Return the exit point
             hitInfo.HitPoint = currentPosition;
             hitInfo.IsHit = true;
+            hitInfo.HitExitWall = true;
             return hitInfo;
 
         }
@@ -138,56 +146,22 @@ namespace Foxworks.Voxels
             localPos.x /= gridSpacing.x;
             localPos.y /= gridSpacing.y;
             localPos.z /= gridSpacing.z;
-            int x = Mathf.FloorToInt(localPos.x);
-            int y = Mathf.FloorToInt(localPos.y);
-            int z = Mathf.FloorToInt(localPos.z);
+            int x = Mathf.RoundToInt(localPos.x);
+            int y = Mathf.RoundToInt(localPos.y);
+            int z = Mathf.RoundToInt(localPos.z);
 
             // Check bounds
             if (x < 0 || x >= vertexAmountX - 1 || y < 0 || y >= vertexAmountY - 1 || z < 0 || z >= vertexAmountZ - 1)
             {
                 return 0f; // Or some default value
             }
-
-            // Trilinear interpolation
-            float xd = localPos.x - x;
-            float yd = localPos.y - y;
-            float zd = localPos.z - z;
-
-            int index000 = x + z * vertexAmountX + y * vertexAmountX * vertexAmountY;
-            int index100 = index000 + 1;
-            int index010 = index000 + vertexAmountX;
-            int index001 = index000 + vertexAmountX * vertexAmountY;
-            int index110 = index010 + 1;
-            int index101 = index100 + vertexAmountX * vertexAmountY;
-            int index011 = index001 + vertexAmountX;
-            int index111 = index011 + 1;
-
-            float c000 = VoxelDataUtils.UnpackValue(verticesValues[index000]);
-            float c100 = VoxelDataUtils.UnpackValue(verticesValues[index100]);
-            float c010 = VoxelDataUtils.UnpackValue(verticesValues[index010]);
-            float c001 = VoxelDataUtils.UnpackValue(verticesValues[index001]);
-            float c110 = VoxelDataUtils.UnpackValue(verticesValues[index110]);
-            float c101 = VoxelDataUtils.UnpackValue(verticesValues[index101]);
-            float c011 = VoxelDataUtils.UnpackValue(verticesValues[index011]);
-            float c111 = VoxelDataUtils.UnpackValue(verticesValues[index111]);
-
-            float c00 = Mathf.Lerp(c000, c100, xd);
-            float c01 = Mathf.Lerp(c001, c101, xd);
-            float c10 = Mathf.Lerp(c010, c110, xd);
-            float c11 = Mathf.Lerp(c011, c111, xd);
-
-            float c0 = Mathf.Lerp(c00, c10, yd);
-            float c1 = Mathf.Lerp(c01, c11, yd);
-
-            float c = Mathf.Lerp(c0, c1, zd);
-
-            if (!detectSmallFeatures)
-            {
-                return c;
-            }
-
-            float maxHit = Mathf.Max(c00, c100, c010, c001, c110, c101, c011, c111);
-            return maxHit;
+            
+            Vector3Int pos = new (x, y, z);
+            Vector3Int vertexAmount = new (vertexAmountX, vertexAmountY, vertexAmountZ);
+            
+            // Get the scalar field value
+            int index = MarchingCubeUtils.ConvertPositionToIndex(pos, vertexAmount);
+            return VoxelDataUtils.UnpackValue(verticesValues[index]);
         }
 
         private static Vector3 RefineIntersection(Ray ray, Vector3 start, Vector3 end, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues,

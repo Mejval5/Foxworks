@@ -23,6 +23,7 @@ namespace Foxworks.Persistence
         
         private const string SaveData = "SaveData";
         private const string SaveDataExtension = ".json";
+        private const int AsyncTimeoutInMilliseconds = 5000;
         private static string[] ByteDataExtensions { get; } = {".zip", ".png", ".bytes"};
 
         public static string SavePath { get; } = Application.persistentDataPath + "/SaveData/";
@@ -42,7 +43,7 @@ namespace Foxworks.Persistence
 #if UNITY_EDITOR
         private static void ResetInEditor(PlayModeStateChange state)
         {
-            if (state is not (PlayModeStateChange.ExitingEditMode or PlayModeStateChange.ExitingPlayMode))
+            if (state is not (PlayModeStateChange.EnteredEditMode or PlayModeStateChange.EnteredPlayMode))
             {
                 return;
             }
@@ -71,17 +72,46 @@ namespace Foxworks.Persistence
                 Debug.Log(message);
             }
         }
-        
+
         /// <summary>
         ///     Deletes the data from the persistent data path.
         /// </summary>
         /// <param name="dataId"></param>
         /// <param name="extension"></param>
-        public static bool Delete(string dataId, string extension = SaveDataExtension)
+        /// <param name="cancellationToken"></param>
+        public static async Task<bool> DeleteAsync(string dataId, string extension = SaveDataExtension, CancellationToken cancellationToken = default)
         {
+            Log($"Deleting data {dataId}");
+
+
+            SemaphoreSlim semaphore = Semaphores.GetOrAdd(dataId, _ => new SemaphoreSlim(1, 1));
+    
+            // Cancel any existing save operation for this dataId
+            if (SaveCancelTokens.TryGetValue(dataId, out CancellationTokenSource cts))
+            {
+                cts.Cancel(); // Cancel the previous save task
+                cts.Dispose();
+            }
+
+            // Create a new cancellation token for the current save
+            cts = new CancellationTokenSource();
+            SaveCancelTokens[dataId] = cts;
+            
+            // Link the new cancellation token with the provided cancellation token
+            CancellationTokenSource linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token);
+            
             string filePath = GetFilePathFromId(dataId, extension);
+            
             try
             {
+                bool acquired = await semaphore.WaitAsync(AsyncTimeoutInMilliseconds, linkedTokenSource.Token);
+                
+                if (acquired == false)
+                {
+                    Debug.LogError($"Failed to acquire semaphore for {dataId} within timeout.");
+                    return false; // Exit early if semaphore wasn't acquired
+                }
+                
                 File.Delete(filePath);
             }
             catch (Exception e)
@@ -122,6 +152,7 @@ namespace Foxworks.Persistence
         /// <param name="dataId"></param>
         /// <param name="item"></param>
         /// <param name="extension"></param>
+        /// <param name="cancellationToken"></param>
         /// <typeparam name="T"></typeparam>
         public static async Task SaveAsync<T>(string dataId, T item, string extension = SaveDataExtension, CancellationToken cancellationToken = default)
         {
@@ -139,30 +170,52 @@ namespace Foxworks.Persistence
             // Create a new cancellation token for the current save
             cts = new CancellationTokenSource();
             SaveCancelTokens[dataId] = cts;
-
-            await semaphore.WaitAsync(cancellationToken);
+            
+            // Link the new cancellation token with the provided cancellation token
+            CancellationTokenSource linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token);
             
             try
             {
+                bool acquired = await semaphore.WaitAsync(AsyncTimeoutInMilliseconds, linkedTokenSource.Token);
+                
+                if (acquired == false)
+                {
+                    Debug.LogError($"Failed to acquire semaphore for {dataId} within timeout.");
+                    return; // Exit early if semaphore wasn't acquired
+                }
+
                 string filePath = GetFilePathFromId(dataId, extension);
 
                 if (item is byte[] bytes)
                 {
-                    await File.WriteAllBytesAsync(filePath, bytes, cancellationToken);
+                    await File.WriteAllBytesAsync(filePath, bytes, linkedTokenSource.Token);
                 }
                 else
                 {
                     string data = SerializeData(item);
-                    await File.WriteAllTextAsync(filePath, data, cancellationToken);
+                    await File.WriteAllTextAsync(filePath, data, linkedTokenSource.Token);
                 }
             }
             catch (OperationCanceledException)
             {
                 // If operation was cancelled, just exit
             }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to save data to {dataId}. Exception: {e}");
+            }
             finally
             {
-                semaphore.Release();
+                try
+                {
+                    semaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the exception if semaphore was disposed, happens when switching play mode
+                }
+                
+                linkedTokenSource.Dispose();
             }
         }
 
@@ -186,6 +239,7 @@ namespace Foxworks.Persistence
         /// </summary>
         /// <param name="dataId"></param>
         /// <param name="extension"></param>
+        /// <param name="cancellationToken"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public static async Task<T> LoadAsync<T>(string dataId, string extension = SaveDataExtension, CancellationToken cancellationToken = default)
@@ -193,16 +247,30 @@ namespace Foxworks.Persistence
             Log($"Loading data from {dataId}");
             
             SemaphoreSlim semaphore = Semaphores.GetOrAdd(dataId, _ => new SemaphoreSlim(1, 1));
-            await semaphore.WaitAsync(cancellationToken);
             
             try
             {
+                bool acquired = await semaphore.WaitAsync(AsyncTimeoutInMilliseconds, cancellationToken);
+                
+                if (acquired == false)
+                {
+                    Debug.LogError($"Failed to acquire semaphore for {dataId} within timeout.");
+                    return default; // Exit early if semaphore wasn't acquired
+                }
+                
                 string filePath = GetFilePathFromId(dataId, extension);
                 return File.Exists(filePath) == false ? default : await LoadFromFileAsync<T>(filePath, cancellationToken);
             }
             finally
             {
-                semaphore.Release();
+                try
+                {
+                    semaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the exception if semaphore was disposed, happens when switching play mode
+                }
             }
         }
 
