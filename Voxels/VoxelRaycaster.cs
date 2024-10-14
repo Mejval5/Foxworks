@@ -6,7 +6,6 @@ namespace Foxworks.Voxels
     public struct HitMeshInfo
     {
         public Vector3 HitPoint;
-        public int VertexIndex;
         public bool IsHit;
         public bool HitExitWall;
         public Ray Ray;
@@ -24,34 +23,35 @@ namespace Foxworks.Voxels
         /// <param name="ray"></param>
         /// <param name="stepSize"></param>
         /// <param name="threshold"></param>
-        /// <param name="vertexAmountX"></param>
-        /// <param name="vertexAmountY"></param>
-        /// <param name="vertexAmountZ"></param>
+        /// <param name="vertexAmount"></param>
         /// <param name="verticesValues"></param>
         /// <param name="gridOrigin"></param>
+        /// <param name="enforceEmptyBorder"></param>
         /// <param name="hitExitWalls"></param>
         /// <returns></returns>
-        public static HitMeshInfo RayMarch(
-            Ray ray, 
-            float stepSize, 
-            float threshold, 
-            int vertexAmountX, 
-            int vertexAmountY, 
-            int vertexAmountZ, 
-            NativeArray<int> verticesValues, 
-            Vector3 gridOrigin,
-            bool hitExitWalls = false)
+        public static HitMeshInfo RayMarch(Ray ray,
+                                           float stepSize,
+                                           float threshold,
+                                           Vector3Int vertexAmount,
+                                           NativeArray<int> verticesValues,
+                                           Vector3 gridOrigin,
+                                           bool enforceEmptyBorder,
+                                           bool hitExitWalls = false)
         {
             HitMeshInfo hitInfo = new();
             Vector3 gridSpacing = new(1f, 1f, 1f);
-            float maxDistance = Mathf.Sqrt(Mathf.Pow(vertexAmountX * gridSpacing.x, 2) + Mathf.Pow(vertexAmountY * gridSpacing.y, 2) + Mathf.Pow(vertexAmountZ * gridSpacing.z, 2));
+            float maxDistance = Mathf.Sqrt(Mathf.Pow(vertexAmount.x * gridSpacing.x, 2) + Mathf.Pow(vertexAmount.y * gridSpacing.y, 2) + Mathf.Pow(vertexAmount.z * gridSpacing.z, 2));
 
             // Define the voxel grid bounds
             Vector3 gridMin = gridOrigin;
-            Vector3 gridMax = gridOrigin + new Vector3(vertexAmountX * gridSpacing.x, vertexAmountY * gridSpacing.y, vertexAmountZ * gridSpacing.z);
+            Vector3 gridMax = gridOrigin + new Vector3(vertexAmount.x * gridSpacing.x, vertexAmount.y * gridSpacing.y, vertexAmount.z * gridSpacing.z);
 
             // Check if the ray intersects the voxel grid bounds
-            if (!RayIntersectsBox(ray, gridMin, gridMax, out float tMin, out float tMax))
+            if (!RayIntersectsBox(ray,
+                                  gridMin,
+                                  gridMax,
+                                  out float tMin,
+                                  out float tMax))
             {
                 hitInfo.IsHit = false;
                 return hitInfo; // No intersection with the grid
@@ -69,7 +69,12 @@ namespace Foxworks.Voxels
                 currentPosition += ray.direction * stepSize;
                 distanceTraveled += stepSize;
 
-                float currentValue = SampleScalarField(currentPosition, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing);
+                float currentValue = SampleScalarField(currentPosition,
+                                                       vertexAmount,
+                                                       verticesValues,
+                                                       gridOrigin,
+                                                       gridSpacing,
+                                                       enforceEmptyBorder);
 
                 // Check for crossing
                 if (!(currentValue > threshold))
@@ -78,8 +83,15 @@ namespace Foxworks.Voxels
                 }
 
                 // Crossing detected, refine intersection point
-                Vector3 intersectionPoint = RefineIntersection(ray, currentPosition - ray.direction * stepSize, currentPosition, threshold, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues,
-                    gridOrigin, gridSpacing);
+                Vector3 startPoint = currentPosition - ray.direction * stepSize;
+                Vector3 intersectionPoint = RefineIntersection(startPoint,
+                                                               currentPosition,
+                                                               threshold,
+                                                               vertexAmount,
+                                                               verticesValues,
+                                                               gridOrigin,
+                                                               gridSpacing,
+                                                               enforceEmptyBorder);
 
                 if (Application.isEditor && Input.GetKey(KeyCode.P))
                 {
@@ -103,7 +115,6 @@ namespace Foxworks.Voxels
             hitInfo.IsHit = true;
             hitInfo.HitExitWall = true;
             return hitInfo;
-
         }
 
         private static bool RayIntersectsBox(Ray ray, Vector3 min, Vector3 max, out float tMin, out float tMax)
@@ -138,8 +149,12 @@ namespace Foxworks.Voxels
             return true;
         }
 
-        private static float SampleScalarField(Vector3 position, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues, Vector3 gridOrigin, Vector3 gridSpacing,
-            bool detectSmallFeatures = false)
+        private static float SampleScalarField(Vector3 position,
+                                               Vector3Int vertexAmount,
+                                               NativeArray<int> verticesValues,
+                                               Vector3 gridOrigin,
+                                               Vector3 gridSpacing,
+                                               bool enforceEmptyBorder)
         {
             // Convert world position to grid indices
             Vector3 localPos = position - gridOrigin;
@@ -151,21 +166,36 @@ namespace Foxworks.Voxels
             int z = Mathf.RoundToInt(localPos.z);
 
             // Check bounds
-            if (x < 0 || x >= vertexAmountX - 1 || y < 0 || y >= vertexAmountY - 1 || z < 0 || z >= vertexAmountZ - 1)
+            if (x < 0 || x > vertexAmount.x - 1 || y < 0 || y > vertexAmount.y - 1 || z < 0 || z > vertexAmount.z - 1)
             {
-                return 0f; // Or some default value
+                return 0f; // Out of bounds is considered empty
             }
             
-            Vector3Int pos = new (x, y, z);
-            Vector3Int vertexAmount = new (vertexAmountX, vertexAmountY, vertexAmountZ);
-            
+            if (enforceEmptyBorder && (x == 0 || x == vertexAmount.x - 1 || y == 0 || y == vertexAmount.y - 1 || z == 0 || z == vertexAmount.z - 1))
+            {
+                return 0f; // If the empty border is enforced, the border is considered empty
+            }
+
+            Vector3Int pos = new(x, y, z);
+
+            if (Application.isEditor && Input.GetKey(KeyCode.O))
+            {
+                Debug.Log($"Position: {pos}, VertexAmount: {vertexAmount}");
+            }
+
             // Get the scalar field value
             int index = MarchingCubeUtils.ConvertPositionToIndex(pos, vertexAmount);
             return VoxelDataUtils.UnpackValue(verticesValues[index]);
         }
 
-        private static Vector3 RefineIntersection(Ray ray, Vector3 start, Vector3 end, float threshold, int vertexAmountX, int vertexAmountY, int vertexAmountZ, NativeArray<int> verticesValues,
-            Vector3 gridOrigin, Vector3 gridSpacing)
+        private static Vector3 RefineIntersection(Vector3 start,
+                                                  Vector3 end,
+                                                  float threshold,
+                                                  Vector3Int vertexAmount,
+                                                  NativeArray<int> verticesValues,
+                                                  Vector3 gridOrigin,
+                                                  Vector3 gridSpacing,
+                                                  bool enforceEmptyBorder)
         {
             const int maxIterations = 10;
             const float tolerance = 1e-4f;
@@ -173,25 +203,36 @@ namespace Foxworks.Voxels
             Vector3 a = start;
             Vector3 b = end;
 
-            float valueA = SampleScalarField(a, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing) - threshold;
+            float valueA = SampleScalarField(a,
+                                             vertexAmount,
+                                             verticesValues,
+                                             gridOrigin,
+                                             gridSpacing,
+                                             enforceEmptyBorder) -
+                           threshold;
 
             for (int i = 0; i < maxIterations; i++)
             {
-                Vector3 mid = (a + b) * 0.5f;
-                float valueMid = SampleScalarField(mid, vertexAmountX, vertexAmountY, vertexAmountZ, verticesValues, gridOrigin, gridSpacing) - threshold;
+                Vector3 samplePositionMid = (a + b) * 0.5f;
+                float valueMid = SampleScalarField(samplePositionMid,
+                                                   vertexAmount,
+                                                   verticesValues,
+                                                   gridOrigin,
+                                                   gridSpacing,
+                                                   enforceEmptyBorder) - threshold;
 
                 if (Mathf.Abs(valueMid) < tolerance)
                 {
-                    return mid;
+                    return samplePositionMid;
                 }
 
                 if (valueA * valueMid < 0)
                 {
-                    b = mid;
+                    b = samplePositionMid;
                 }
                 else
                 {
-                    a = mid;
+                    a = samplePositionMid;
                     valueA = valueMid;
                 }
             }

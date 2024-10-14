@@ -4,6 +4,7 @@ namespace Foxworks.Voxels
 {
     public static class VoxelDataUtils
     {
+        
         public const int ValueBits = 11; // First bits store value as 0f-1f
         public const int Values = 1 << ValueBits;
         public const int ValueMask = (1 << ValueBits) - 1;
