@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Foxworks.Utils;
+using Unity.Plastic.Newtonsoft.Json;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -332,19 +333,21 @@ namespace Foxworks.Persistence
             // Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, IntPtr, UIntPtr, Char, Double, and Single
             if (typeof(T).IsPrimitive)
             {
-                T res = (T)Convert.ChangeType(data, typeof(T));
-                return res;
+                return (T)Convert.ChangeType(data, typeof(T));
             }
 
-            T result = JsonUtility.FromJson<T>(data);
-            return result;
+            return JsonConvert.DeserializeObject<T>(data);
         }
 
         private static string SerializeData(object obj)
         {
+            if (obj == null)
+            {
+                return JsonConvert.SerializeObject(null); // Returns "null" as a string
+            }
+
             // Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, IntPtr, UIntPtr, Char, Double, and Single
-            string data = obj.GetType().IsPrimitive ? obj.ToString() : JsonUtility.ToJson(obj);
-            return data;
+            return obj.GetType().IsPrimitive ? obj.ToString() : JsonConvert.SerializeObject(obj);
         }
     }
 }
