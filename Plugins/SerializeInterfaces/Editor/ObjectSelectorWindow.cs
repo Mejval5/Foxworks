@@ -8,6 +8,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
+using Tab = Foxworks.External.SerializeInterfaces.Editor.UIElements.Tab;
 
 namespace Foxworks.External.SerializeInterfaces.Editor
 {
