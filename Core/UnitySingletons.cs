@@ -142,7 +142,7 @@ namespace Foxworks.Core
                 }
 
                 // Find existing instance
-                instance = FindObjectOfType(typeof(T)) as T;
+                instance = FindFirstObjectByType(typeof(T)) as T;
 
                 if (instance == null)
                 {
