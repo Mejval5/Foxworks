@@ -23,7 +23,7 @@ namespace Foxworks.Persistence
         private static bool DebugMode { get; } = false;
         
         private const string SaveData = "SaveData";
-        private const string SaveDataExtension = ".json";
+        private const string SaveDataExtension = "json";
         private const int AsyncTimeoutInMilliseconds = 5000;
         private static string[] ByteDataExtensions { get; } = {".zip", ".png", ".bytes"};
 
@@ -74,6 +74,11 @@ namespace Foxworks.Persistence
             }
         }
 
+        public static string[] GetAllFilesAtPath(string filter = "")
+        {
+            return string.IsNullOrEmpty(filter) ? Directory.GetFiles(SavePath) : Directory.GetFiles(SavePath, $"*{filter}*");
+        }
+
         /// <summary>
         ///     Deletes the data from the persistent data path.
         /// </summary>
@@ -83,7 +88,6 @@ namespace Foxworks.Persistence
         public static async Task<bool> DeleteAsync(string dataId, string extension = SaveDataExtension, CancellationToken cancellationToken = default)
         {
             Log($"Deleting data {dataId}");
-
 
             SemaphoreSlim semaphore = Semaphores.GetOrAdd(dataId, _ => new SemaphoreSlim(1, 1));
     
@@ -287,8 +291,13 @@ namespace Foxworks.Persistence
             return File.Exists(filePath);
         }
 
-        private static T LoadFromFile<T>(string filePath)
+        public static T LoadFromFile<T>(string filePath)
         {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return default;
+            }
+            
             if (ByteDataExtensions.Contains(Path.GetExtension(filePath)))
             {
                 byte[] data = File.ReadAllBytes(filePath);

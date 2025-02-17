@@ -5,6 +5,15 @@ namespace Foxworks.Utils
 {
     public static class RandomUtils
     {
+        public static float Value(this Random random, float min, float max)
+        {
+            if (min > max)
+            {
+                (min, max) = (max, min);
+            }
+            return (float) random.NextDouble() * (max - min) + min;
+        }
+        
         public static float Value(this Random random)
         {
             return (float) random.NextDouble();
