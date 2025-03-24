@@ -14,7 +14,7 @@ namespace Foxworks.Utils
         /// <param name="fallback"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static T GetRandom<T>(this IEnumerable<T> source, T fallback)
+        public static T GetRandom<T>(this IEnumerable<T> source, T fallback = default)
         {
             List<T> list = source.ToList();
 
